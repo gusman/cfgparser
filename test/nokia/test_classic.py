@@ -30,6 +30,7 @@ exit all
 """
 
     ref = """
+[root: 0]
 configure
     system
         netconf
@@ -54,6 +55,8 @@ configure
     parser.parse(lines)
 
     result = parser.dumps()
+    parts = [line.rstrip() for line in result.split("\n") if line.strip()]
+    result = "\n".join(parts)
 
     assert ref == result
 
@@ -98,6 +101,7 @@ exit all
 """
 
     ref = """
+[root: 0]
 configure
     system
         id_container 20
@@ -119,8 +123,8 @@ configure
         field
 """
 
-    ref = [line.rstrip() for line in ref.split("\n") if line.strip()]
-    ref = "\n".join(ref)
+    parts = [line.rstrip() for line in ref.split("\n") if line.strip()]
+    ref = "\n".join(parts)
 
     lines = cfg_text.split("\n")
 
@@ -128,5 +132,7 @@ configure
     parser.parse(lines)
 
     result = parser.dumps()
+    parts = [line.rstrip() for line in result.split("\n") if line.strip()]
+    result = "\n".join(parts)
 
     assert ref == result

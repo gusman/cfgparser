@@ -1,16 +1,28 @@
 from __future__ import annotations
 
-import dataclasses
 import typing as t
 
 
-@dataclasses.dataclass
 class Token:
-    name: str = ""
-    value: str = ""
-    indent: int = 0
-    params: list = dataclasses.field(default_factory=list)
-    childs: list = dataclasses.field(default_factory=dict)
+    def __init__(
+        self,
+        name: str,
+        value: str,
+        indent: int,
+        params: t.Optional[t.List] = None,
+        childs: t.Optional[t.Dict] = None,
+    ):
+        self.name: str = name
+        self.value: str = value
+        self.indent: int = indent
+        self.params: list = []
+        self.childs: dict = {}
+
+        if params:
+            self.params = params
+
+        if childs:
+            self.childs = childs
 
     @property
     def id(self):
@@ -19,10 +31,53 @@ class Token:
         else:
             return self.name
 
+    def is_attr_same(self, token: Token) -> bool:
+        return (
+            (self.name == token.name)
+            and (self.indent == token.indent)
+            and (self.value == token.value)
+        )
+
+    def find_token(self, token: Token) -> None | Token:
+        def recurse_find(token_tree: Token, token: Token):
+            if token_tree.is_attr_same(token):
+                return token_tree
+
+            for c in token_tree.childs.values():
+                ret = recurse_find(c, token)
+                if ret:
+                    return ret
+            return None
+
+        return recurse_find(self, token)
+
+
+class Transformer:
+    def __init__(self, token: Token):
+        self.token = token
+
+    def to_structured_text(self) -> str:
+        def traverse_text(token):
+            indent = ""
+            for i in range(0, token.indent):
+                indent += " "
+
+            text = indent + token.id
+            if token.params:
+                text = f"{text} {" ".join(token.params)}"
+
+            for c in token.childs.values():
+                text += "\n"
+                text += traverse_text(c)
+
+            return text
+
+        return traverse_text(self.token)
+
 
 class Tree:
     def __init__(self):
-        self.tokens = []
+        self.tokens: t.List[Token] = []
 
     def scan_line(self, line) -> None | Token:
         line_clean = line.strip()
@@ -52,16 +107,8 @@ class Tree:
 
         return token
 
-    @staticmethod
-    def _is_token_same(token_a: Token, token_b: Token) -> bool:
-        return (
-            (token_a.name == token_b.name)
-            and (token_a.indent == token_b.indent)
-            and (token_a.value == token_b.value)
-        )
-
     def _recurse_merge_dict_of_child(self, token_dst: Token, token_src: Token) -> None:
-        if not self._is_token_same(token_dst, token_src):
+        if not token_dst.is_attr_same(token_src):
             return None
 
         if not token_src.childs:
@@ -109,7 +156,7 @@ class Tree:
             return None
 
         for c in childs:
-            existing_c = self._find_token(parent, c)
+            existing_c = parent.find_token(c)
             if existing_c:
                 self._recurse_merge_dict_of_child(existing_c, c)
             else:
@@ -118,39 +165,20 @@ class Tree:
         self.tokens = [token for token in self.tokens if token not in childs]
         return None
 
-    def _find_token(self, token_tree: Token, token: Token) -> None | Token:
-        if self._is_token_same(token_tree, token):
-            return token_tree
-
-        for c in token_tree.childs.values():
-            ret = self._find_token(c, token)
-            if ret:
-                return ret
-        return None
-
-    def _traverse_dump_str(self, token: Token) -> str:
-        indent = ""
-        for i in range(0, token.indent):
-            indent += " "
-
-        text = indent + token.id
-        if token.params:
-            text = f"{text} {" ".join(token.params)}"
-
-        for c in token.childs.values():
-            text += "\n"
-            text += self._traverse_dump_str(c)
-
-        return text
+    def is_complete(self) -> bool:
+        return len(self.tokens) <= 1
 
     def dump_str(self) -> str:
         if not self.tokens:
             return ""
 
-        return self._traverse_dump_str(self.tokens[0])
+        ret = ""
+        for idx, root_token in enumerate(self.tokens):
+            ret += f"[root: {idx}]\n"
+            ret += Transformer(root_token).to_structured_text()
+            ret += "\n"
 
-    def is_complete(self) -> bool:
-        return len(self.tokens) <= 1
+        return ret
 
 
 class Parser:
