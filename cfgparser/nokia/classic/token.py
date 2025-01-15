@@ -55,8 +55,6 @@ class Token:
 
 
 class DefaultTokenBuilder:
-    token_type = "default"
-
     @staticmethod
     def check_rule(words: list) -> bool:
         return True
@@ -80,8 +78,6 @@ class DefaultTokenBuilder:
 
 
 class ShutdownTokenBuilder:
-    token_type = "default"
-
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) == 1 and words[0] == "shutdown":
@@ -105,8 +101,6 @@ class ShutdownTokenBuilder:
 
 
 class BfdTokenBuilder:
-    token_type = "bfd"
-
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) < 7:
@@ -128,19 +122,48 @@ class BfdTokenBuilder:
     def create(words: list, indent: int) -> Token:
         name, tx_val, __, rx_val, __, multi_val, __, type_val = words
 
-        bfd_token = Token(name, None, indent)
+        token = Token(name, None, indent)
 
         child_indent = indent + INDENT_SZ
-        bfd_token.childs["transmit"] = Token("transmit", rx_val, child_indent)
-        bfd_token.childs["rx_token"] = Token("receive", tx_val, child_indent)
-        bfd_token.childs["multi"] = Token("multi", multi_val, child_indent)
-        bfd_token.childs["type"] = Token("type", type_val, child_indent)
+        token.childs["transmit"] = Token("transmit", rx_val, child_indent)
+        token.childs["rx_token"] = Token("receive", tx_val, child_indent)
+        token.childs["multi"] = Token("multi", multi_val, child_indent)
+        token.childs["type"] = Token("type", type_val, child_indent)
 
-        return bfd_token
+        return token
+
+
+class SvcCustomerTokenBuilder:
+
+    @staticmethod
+    def check_rule(words: list) -> bool:
+        if len(words) < 5:
+            return False
+
+        if all(
+            (
+                words[0] == "customer",
+                words[2] == "name",
+                words[4] == "create",
+            )
+        ):
+            return True
+
+        return False
+
+    @staticmethod
+    def create(words: list, indent: int) -> Token:
+        name, value, __, cust_name, __ = words
+        token = Token(name, value, indent)
+
+        child_indent = indent + INDENT_SZ
+        token.childs["name"] = Token("name", cust_name, child_indent)
+
+        return token
 
 
 class TokenBuilder:
-    __LIST_OF_BUILDER = [ShutdownTokenBuilder, BfdTokenBuilder]
+    __LIST_OF_BUILDER = [ShutdownTokenBuilder, BfdTokenBuilder, SvcCustomerTokenBuilder]
 
     @staticmethod
     def create_token(words: list, indent: int) -> Token:
