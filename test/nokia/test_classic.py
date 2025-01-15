@@ -35,15 +35,15 @@ configure
     system
         netconf
             listen
-                no shutdown
-            no auto-config-save
+                shutdown no
+            auto-config-save no
         management-interface
             cli
                 md-cli
-                    no auto-config-save
+                    auto-config-save no
         config-backup 5
         location "site 1"
-        name "PE1"
+        name PE1
 """
 
     ref = [line.rstrip() for line in ref.split("\n") if line.strip()]
@@ -136,3 +136,213 @@ configure
     result = "\n".join(parts)
 
     assert ref == result
+
+
+def test_to_dict():
+    cfg_text = """
+exit all
+configure
+#--------------------------------------------------
+echo "System Configuration"
+#--------------------------------------------------
+    system
+        name "PE1"
+        location "site 1"
+        config-backup 5
+        management-interface
+            cli
+                md-cli
+                    no auto-config-save
+                exit
+            exit
+        exit
+        netconf
+            no auto-config-save
+            listen
+                no shutdown
+            exit
+        exit
+    exit
+        card 1
+            card-type iom-1
+            mda 1
+                mda-type me6-100gb-qsfp28
+                no shutdown
+            exit
+            mda 2
+                mda-type me6-100gb-qsfp28
+                no shutdown
+            exit
+            no shutdown
+        exit
+    exit
+#--------------------------------------------------
+echo "Connector Configuration"
+#--------------------------------------------------
+    port 1/1/c1
+        connector
+            breakout c1-100g
+        exit
+        no shutdown
+    exit
+    port 1/1/c2
+        connector
+            breakout c1-100g
+        exit
+        no shutdown
+    exit
+exit all
+"""
+
+    ref = {
+        "configure": {
+            "port 1/1/c2": {"shutdown": "no", "connector": {"breakout": "c1-100g"}},
+            "port 1/1/c1": {"shutdown": "no", "connector": {"breakout": "c1-100g"}},
+            "system": {
+                "netconf": {"listen": {"shutdown": "no"}, "auto-config-save": "no"},
+                "management-interface": {"cli": {"md-cli": {"auto-config-save": "no"}}},
+                "config-backup": "5",
+                "location": "site 1",
+                "name": "PE1",
+                "card 1": {
+                    "shutdown": "no",
+                    "mda 2": {"shutdown": "no", "mda-type": "me6-100gb-qsfp28"},
+                    "mda 1": {"shutdown": "no", "mda-type": "me6-100gb-qsfp28"},
+                    "card-type": "iom-1",
+                },
+            },
+        }
+    }
+
+    lines = cfg_text.split("\n")
+
+    parser = nc_parser.Parser()
+    parser.parse(lines)
+
+    result = parser.to_dict()
+    assert result == ref
+
+
+def test_tokenize_line():
+    line = ' mda "iom high:375" up "hero here" 1\n'
+
+    result = nc_parser.Tree._tokenize_line(line)
+    assert result == ["mda", "iom high:375", "up", "hero here", "1"]
+
+    line = ' mda "hello \n'
+    result = nc_parser.Tree._tokenize_line(line)
+    assert result == ["mda", '"hello']
+
+    line = ' mda hello "\n'
+    result = nc_parser.Tree._tokenize_line(line)
+    assert result == ["mda", "hello", '"']
+
+    line = ' "mda hello "\n'
+    result = nc_parser.Tree._tokenize_line(line)
+    assert result == ["mda hello "]
+
+    line = ' "mda hello \n'
+    result = nc_parser.Tree._tokenize_line(line)
+    assert result == ['"mda', "hello"]
+
+    line = ' user "snmpv3_user" \n'
+    result = nc_parser.Tree._tokenize_line(line)
+    assert result == ["user", "snmpv3_user"]
+
+
+def test_multiple_params():
+    cfg_text = """
+configure
+    router Base
+        interface "system"
+            address 1.1.1.5/32
+            no shutdown
+        exit
+        interface "to_p1_100g_1"
+            address 10.10.10.10/30
+            ldp-sync-timer 10
+            port 1/1/1
+            ingress
+            exit
+            bfd 10 receive 10 multiplier 3 type fp
+            no shutdown
+        exit
+        autonomous-system 65001
+        router-id 1.1.1.5
+    exit
+exit
+"""
+
+    ref = {
+        "configure": {
+            "router Base": {
+                "router-id": "1.1.1.5",
+                "autonomous-system": "65001",
+                "interface to_p1_100g_1": {
+                    "shutdown": "no",
+                    "bfd": ["10", "receive", "10", "multiplier", "3", "type", "fp"],
+                    "ingress": "",
+                    "port": "1/1/1",
+                    "ldp-sync-timer": "10",
+                    "address": "10.10.10.10/30",
+                },
+                "interface system": {"shutdown": "no", "address": "1.1.1.5/32"},
+            }
+        }
+    }
+
+    lines = cfg_text.split("\n")
+
+    parser = nc_parser.Parser()
+    parser.parse(lines)
+
+    assert ref == parser.to_dict()
+
+
+def test_multiple_parts_id():
+    cfg_text = """
+configure
+    service
+        sdp 560 mpls create
+            far-end 1.1.1.6
+            bgp-tunnel
+            keep-alive
+                shutdown
+            exit
+            no shutdown
+        exit
+        customer 1 name "1" create
+            description "Default customer"
+        exit
+        customer 2 name "2" create
+        exit
+        vpls 100 name "100" customer 2 create
+            stp
+                shutdown
+            exit
+            sap 1/1/2:100 create
+                no shutdown
+            exit
+            no shutdown
+        exit
+        epipe 560 name "560" customer 1 create
+            sap 1/1/2:10 create
+                no shutdown
+            exit
+            spoke-sdp 560:10 create
+                no shutdown
+            exit
+            no shutdown
+        exit
+    exit
+exit all
+"""
+
+    lines = cfg_text.split("\n")
+
+    parser = nc_parser.Parser()
+    parser.parse(lines)
+
+    import json
+
+    print(json.dumps(parser.to_dict(), indent=4))

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import typing as t
 
 
@@ -7,13 +8,13 @@ class Token:
     def __init__(
         self,
         name: str,
-        value: str,
+        value: t.Optional[str],
         indent: int,
         params: t.Optional[t.List] = None,
         childs: t.Optional[t.Dict] = None,
     ):
         self.name: str = name
-        self.value: str = value
+        self.value: t.Optional[str] = value
         self.indent: int = indent
         self.params: list = []
         self.childs: dict = {}
@@ -39,7 +40,7 @@ class Token:
         )
 
     def find_token(self, token: Token) -> None | Token:
-        def recurse_find(token_tree: Token, token: Token):
+        def recurse_find(token_tree: Token, token: Token) -> None | Token:
             if token_tree.is_attr_same(token):
                 return token_tree
 
@@ -57,14 +58,22 @@ class Transformer:
         self.token = token
 
     def to_structured_text(self) -> str:
-        def traverse_text(token):
+        def enclose_string(text: str) -> str:
+            if " " in text:
+                text = f'"{text}"'
+            return text
+
+        def traverse_text(token: Token):
             indent = ""
             for i in range(0, token.indent):
                 indent += " "
 
-            text = indent + token.id
+            text = indent + enclose_string(token.name)
+            if token.value:
+                text += " " + enclose_string(token.value)
+
             if token.params:
-                text = f"{text} {" ".join(token.params)}"
+                text = f"{text} {" ".join([enclose_string(t) for t in token.params])}"
 
             for c in token.childs.values():
                 text += "\n"
@@ -74,10 +83,52 @@ class Transformer:
 
         return traverse_text(self.token)
 
+    def to_dict(self) -> dict:
+        data: dict = {}
+
+        def traverse_data(token: Token, data: dict):
+            if token.childs:
+                data[token.id] = {}
+                for c in token.childs.values():
+                    traverse_data(c, data[token.id])
+            else:
+                if token.params:
+                    data[token.name] = [token.value] + token.params
+                elif token.value:
+                    data[token.name] = token.value
+                else:
+                    data[token.name] = ""
+
+        traverse_data(self.token, data)
+        return data
+
 
 class Tree:
     def __init__(self):
-        self.tokens: t.List[Token] = []
+        self.tokens = []
+
+    @staticmethod
+    def _tokenize_line(text: str) -> list:
+        words = []
+        text = text.strip()
+
+        while text:
+            if text.startswith('"'):
+                match = re.match(r"\"(.+?)\"", text)
+
+                if match:
+                    text = text.replace(match.group(0), "", 1).lstrip()
+
+                    # Remove double quotes before storing
+                    words.append(match.group(0).replace('"', ""))
+                    continue
+
+            parts = text.split(" ", 1)
+            if parts:
+                words.append(parts[0])
+                text = text.replace(parts[0], "", 1).lstrip()
+
+        return words
 
     def scan_line(self, line) -> None | Token:
         line_clean = line.strip()
@@ -89,17 +140,20 @@ class Tree:
 
         line_trimmed = line.rstrip()
         indent_sz = len(line_trimmed) - len(line_trimmed.lstrip())
-        tokens = line_clean.split(" ")
 
-        name = tokens[0]
+        words = self._tokenize_line(line_clean)
+        name = words[0]
         value = None
         params = []
 
-        if len(tokens) > 1:
-            value = tokens[1]
+        if len(words) > 1:
+            value = words[1]
 
-        if len(tokens) > 2:
-            params = tokens[2:]
+            if name == "no":
+                name, value = value, name
+
+        if len(words) > 2:
+            params = words[2:]
 
         token = Token(name, value, indent_sz, params)
         if not name.startswith("exit"):
@@ -169,14 +223,23 @@ class Tree:
         return len(self.tokens) <= 1
 
     def dump_str(self) -> str:
-        if not self.tokens:
-            return ""
-
         ret = ""
         for idx, root_token in enumerate(self.tokens):
             ret += f"[root: {idx}]\n"
             ret += Transformer(root_token).to_structured_text()
             ret += "\n"
+
+        return ret
+
+    def to_dict(self) -> dict:
+        lst = []
+
+        for idx, root_token in enumerate(self.tokens):
+            lst.append(Transformer(root_token).to_dict())
+
+        ret = {}
+        if lst:
+            ret = lst[0]
 
         return ret
 
@@ -194,3 +257,6 @@ class Parser:
 
     def dumps(self) -> str:
         return self._tree.dump_str()
+
+    def to_dict(self) -> dict:
+        return self._tree.to_dict()

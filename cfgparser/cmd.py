@@ -1,4 +1,5 @@
 import argparse
+import json
 
 from cfgparser.nokia.classic import parser as nc_parser
 
@@ -15,7 +16,8 @@ def _parse_nokia_classic(f_path: str) -> None:
     parser = nc_parser.Parser()
     with open(f_path, "r") as fd:
         parser.parse(fd)
-    print(parser.dumps())
+
+    print(json.dumps(parser.to_dict(), indent=4, sort_keys=True))
 
 
 def run():
