@@ -280,7 +280,12 @@ exit
                 "autonomous-system": "65001",
                 "interface to_p1_100g_1": {
                     "shutdown": "no",
-                    "bfd": ["10", "receive", "10", "multiplier", "3", "type", "fp"],
+                    "bfd": {
+                        "multi": "3",
+                        "receive": "10",
+                        "transmit": "10",
+                        "type": "fp"
+                    },
                     "ingress": "",
                     "port": "1/1/1",
                     "ldp-sync-timer": "10",

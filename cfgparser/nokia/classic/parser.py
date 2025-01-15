@@ -3,54 +3,8 @@ from __future__ import annotations
 import re
 import typing as t
 
-
-class Token:
-    def __init__(
-        self,
-        name: str,
-        value: t.Optional[str],
-        indent: int,
-        params: t.Optional[t.List] = None,
-        childs: t.Optional[t.Dict] = None,
-    ):
-        self.name: str = name
-        self.value: t.Optional[str] = value
-        self.indent: int = indent
-        self.params: list = []
-        self.childs: dict = {}
-
-        if params:
-            self.params = params
-
-        if childs:
-            self.childs = childs
-
-    @property
-    def id(self):
-        if isinstance(self.value, str):
-            return f"{self.name} {self.value}"
-        else:
-            return self.name
-
-    def is_attr_same(self, token: Token) -> bool:
-        return (
-            (self.name == token.name)
-            and (self.indent == token.indent)
-            and (self.value == token.value)
-        )
-
-    def find_token(self, token: Token) -> None | Token:
-        def recurse_find(token_tree: Token, token: Token) -> None | Token:
-            if token_tree.is_attr_same(token):
-                return token_tree
-
-            for c in token_tree.childs.values():
-                ret = recurse_find(c, token)
-                if ret:
-                    return ret
-            return None
-
-        return recurse_find(self, token)
+from cfgparser.nokia.classic.token import Token
+from cfgparser.nokia.classic.token import TokenBuilder
 
 
 class Transformer:
@@ -139,24 +93,26 @@ class Tree:
             return None
 
         line_trimmed = line.rstrip()
-        indent_sz = len(line_trimmed) - len(line_trimmed.lstrip())
+        indent = len(line_trimmed) - len(line_trimmed.lstrip())
 
         words = self._tokenize_line(line_clean)
-        name = words[0]
-        value = None
-        params = []
+        # name = words[0]
+        # value = None
+        # params = []
 
-        if len(words) > 1:
-            value = words[1]
+        # if len(words) > 1:
+        #     value = words[1]
 
-            if name == "no":
-                name, value = value, name
+        #     if name == "no":
+        #         name, value = value, name
 
-        if len(words) > 2:
-            params = words[2:]
+        # if len(words) > 2:
+        #     params = words[2:]
 
-        token = Token(name, value, indent_sz, params)
-        if not name.startswith("exit"):
+        # token = Token(name, value, indent_sz, params)
+
+        token = TokenBuilder.create_token(words, indent)
+        if not token.name.startswith("exit"):
             self.tokens.append(token)
 
         return token
