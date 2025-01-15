@@ -12,8 +12,10 @@ def _get_args():
 
 
 def _parse_nokia_classic(f_path: str) -> None:
+    parser = nc_parser.Parser()
     with open(f_path, "r") as fd:
-        nc_parser.parse(fd)
+        parser.parse(fd)
+    print(parser.dumps())
 
 
 def run():

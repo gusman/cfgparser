@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import typing as t
 
 
 @dataclasses.dataclass
@@ -19,7 +20,7 @@ class Token:
             return self.name
 
 
-class Parser:
+class Tree:
     def __init__(self):
         self.tokens = []
 
@@ -52,15 +53,15 @@ class Parser:
         return token
 
     @staticmethod
-    def is_token_same(token_a: Token, token_b: Token) -> bool:
+    def _is_token_same(token_a: Token, token_b: Token) -> bool:
         return (
             (token_a.name == token_b.name)
             and (token_a.indent == token_b.indent)
             and (token_a.value == token_b.value)
         )
 
-    def recursive_merge_dict_of_child(self, token_dst: Token, token_src: Token):
-        if not self.is_token_same(token_dst, token_src):
+    def _recurse_merge_dict_of_child(self, token_dst: Token, token_src: Token) -> None:
+        if not self._is_token_same(token_dst, token_src):
             return None
 
         if not token_src.childs:
@@ -87,18 +88,13 @@ class Parser:
                     and isinstance(src_val, Token)
                     and src_val.childs
                 ):
-                    self.recursive_merge_dict_of_child(dst_val, src_val)
+                    self._recurse_merge_dict_of_child(dst_val, src_val)
                 else:
                     pass
 
         return None
 
-    def __print_tokens(self):
-        for idx, token in enumerate(self.tokens):
-            print(f"[{idx}]")
-            self.traverse_print(token)
-
-    def backtrack_parse_container(self, indent_sz: int) -> None:
+    def backparse_from_token(self, indent_sz: int) -> None:
         childs = []
         parent: Token | None = None
 
@@ -113,28 +109,26 @@ class Parser:
             return None
 
         for c in childs:
-            existing_c = self.find_existing_token(parent, c)
+            existing_c = self._find_token(parent, c)
             if existing_c:
-                self.recursive_merge_dict_of_child(existing_c, c)
+                self._recurse_merge_dict_of_child(existing_c, c)
             else:
                 parent.childs[c.id] = c
 
         self.tokens = [token for token in self.tokens if token not in childs]
-
         return None
 
-    def find_existing_token(self, token_tree: Token, token: Token) -> None | Token:
-        if self.is_token_same(token_tree, token):
+    def _find_token(self, token_tree: Token, token: Token) -> None | Token:
+        if self._is_token_same(token_tree, token):
             return token_tree
 
         for c in token_tree.childs.values():
-            ret = self.find_existing_token(c, token)
+            ret = self._find_token(c, token)
             if ret:
                 return ret
-
         return None
 
-    def traverse_print(self, token: Token):
+    def _traverse_dump_str(self, token: Token) -> str:
         indent = ""
         for i in range(0, token.indent):
             indent += " "
@@ -142,35 +136,33 @@ class Parser:
         text = indent + token.id
         if token.params:
             text = f"{text} {" ".join(token.params)}"
-        print(text)
 
         for c in token.childs.values():
-            self.traverse_print(c)
+            text += "\n"
+            text += self._traverse_dump_str(c)
 
-    def traverse_dump(self) -> None:
+        return text
+
+    def dump_str(self) -> str:
         if not self.tokens:
-            return None
+            return ""
 
-        self.traverse_print(self.tokens[0])
-        return None
+        return self._traverse_dump_str(self.tokens[0])
 
     def is_complete(self) -> bool:
         return len(self.tokens) <= 1
 
 
-def parse(fd):
-    parser = Parser()
+class Parser:
+    def __init__(self):
+        self._tree = Tree()
 
-    for line in fd:
-        token = parser.scan_line(line)
-        if token and token.name.startswith("exit"):
-            parser.backtrack_parse_container(token.indent)
+    def parse(self, lines: t.Iterable) -> None:
+        for line in lines:
+            token = self._tree.scan_line(line)
 
-    print("-----------------------------------------------")
-    print(" Final Dump")
-    print("-----------------------------------------------")
-    parser.traverse_dump()
+            if token and token.name.startswith("exit"):
+                self._tree.backparse_from_token(token.indent)
 
-    print("-----------------------------------------------")
-    print("Is Complete: ", parser.is_complete())
-    print("-----------------------------------------------")
+    def dumps(self) -> str:
+        return self._tree.dump_str()
