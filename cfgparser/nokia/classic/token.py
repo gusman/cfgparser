@@ -133,6 +133,36 @@ class BfdTokenBuilder:
         return token
 
 
+class SdpTokenBuilder:
+
+    @staticmethod
+    def check_rule(words: list) -> bool:
+        if len(words) < 4:
+            return False
+
+        if all(
+            (
+                words[0] == "sdp",
+                words[3] == "create",
+            )
+        ):
+            return True
+
+        return False
+
+    @staticmethod
+    def create(words: list, indent: int) -> Token:
+        name, value, delivery_type, __ = words
+        token = Token(name, value, indent)
+
+        child_indent = indent + INDENT_SZ
+        token.childs["delivery-type"] = Token(
+            "delivery-type", delivery_type, child_indent
+        )
+
+        return token
+
+
 class SvcCustomerTokenBuilder:
 
     @staticmethod
@@ -162,8 +192,77 @@ class SvcCustomerTokenBuilder:
         return token
 
 
+class VplsTokenBuilder:
+
+    @staticmethod
+    def check_rule(words: list) -> bool:
+        if len(words) < 7:
+            return False
+
+        if all(
+            (
+                words[0] == "vpls",
+                words[2] == "name",
+                words[4] == "customer",
+                words[6] == "create",
+            )
+        ):
+            return True
+
+        return False
+
+    @staticmethod
+    def create(words: list, indent: int) -> Token:
+        name, value, __, vpls_name, __, cust_id, __ = words
+        token = Token(name, value, indent)
+
+        child_indent = indent + INDENT_SZ
+        token.childs["name"] = Token("name", vpls_name, child_indent)
+        token.childs["customer"] = Token("customer", cust_id, child_indent)
+
+        return token
+
+
+class EpipeTokenBuilder:
+
+    @staticmethod
+    def check_rule(words: list) -> bool:
+        if len(words) < 7:
+            return False
+
+        if all(
+            (
+                words[0] == "epipe",
+                words[2] == "name",
+                words[4] == "customer",
+                words[6] == "create",
+            )
+        ):
+            return True
+
+        return False
+
+    @staticmethod
+    def create(words: list, indent: int) -> Token:
+        name, value, __, epipe_name, __, cust_id, __ = words
+        token = Token(name, value, indent)
+
+        child_indent = indent + INDENT_SZ
+        token.childs["name"] = Token("name", epipe_name, child_indent)
+        token.childs["customer"] = Token("customer", cust_id, child_indent)
+
+        return token
+
+
 class TokenBuilder:
-    __LIST_OF_BUILDER = [ShutdownTokenBuilder, BfdTokenBuilder, SvcCustomerTokenBuilder]
+    __LIST_OF_BUILDER = [
+        ShutdownTokenBuilder,
+        BfdTokenBuilder,
+        SdpTokenBuilder,
+        SvcCustomerTokenBuilder,
+        VplsTokenBuilder,
+        EpipeTokenBuilder,
+    ]
 
     @staticmethod
     def create_token(words: list, indent: int) -> Token:
