@@ -284,7 +284,7 @@ exit
                         "multi": "3",
                         "receive": "10",
                         "transmit": "10",
-                        "type": "fp"
+                        "type": "fp",
                     },
                     "ingress": "",
                     "port": "1/1/1",
@@ -342,12 +342,39 @@ configure
     exit
 exit all
 """
-
+    ref = {
+        "configure": {
+            "service": {
+                "epipe 560": {
+                    "name": "560",
+                    "customer": "1",
+                    "shutdown": "no",
+                    "spoke-sdp 560:10": {"shutdown": "no"},
+                    "sap 1/1/2:10": {"shutdown": "no"},
+                },
+                "vpls 100": {
+                    "name": "100",
+                    "customer": "2",
+                    "shutdown": "no",
+                    "sap 1/1/2:100": {"shutdown": "no"},
+                    "stp": {"shutdown": "yes"},
+                },
+                "customer 2": {"name": "2"},
+                "customer 1": {"name": "1", "description": "Default customer"},
+                "sdp 560": {
+                    "delivery-type": "mpls",
+                    "shutdown": "no",
+                    "keep-alive": {"shutdown": "yes"},
+                    "bgp-tunnel": "",
+                    "far-end": "1.1.1.6",
+                },
+            }
+        }
+    }
     lines = cfg_text.split("\n")
 
     parser = nc_parser.Parser()
     parser.parse(lines)
 
-    import json
-
-    print(json.dumps(parser.to_dict(), indent=4))
+    result = parser.to_dict()
+    assert ref == result
