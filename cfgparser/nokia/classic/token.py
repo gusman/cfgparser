@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import typing as t
+from abc import ABC
+from abc import abstractmethod
 
 INDENT_SZ = 4
 
@@ -54,7 +56,15 @@ class Token:
         return recurse_find(self, token)
 
 
-class DefaultTokenBuilder:
+class AbstractTokenBuilder(ABC):
+    @abstractmethod
+    def check_rule(self, words: t.List[str]) -> bool: ...
+
+    @abstractmethod
+    def create(self, words: t.List[str], indent: int) -> Token: ...
+
+
+class DefaultTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         return True
@@ -77,7 +87,7 @@ class DefaultTokenBuilder:
         return Token(name, value, indent, params)
 
 
-class ShutdownTokenBuilder:
+class ShutdownTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) == 1 and words[0] == "shutdown":
@@ -100,7 +110,7 @@ class ShutdownTokenBuilder:
         return Token(name, value, indent)
 
 
-class BfdTokenBuilder:
+class BfdTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) < 7:
@@ -133,8 +143,7 @@ class BfdTokenBuilder:
         return token
 
 
-class SdpTokenBuilder:
-
+class SdpTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) < 4:
@@ -163,8 +172,7 @@ class SdpTokenBuilder:
         return token
 
 
-class SvcCustomerTokenBuilder:
-
+class SvcCustomerTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) < 5:
@@ -192,8 +200,7 @@ class SvcCustomerTokenBuilder:
         return token
 
 
-class VplsTokenBuilder:
-
+class VplsTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) < 7:
@@ -223,8 +230,7 @@ class VplsTokenBuilder:
         return token
 
 
-class EpipeTokenBuilder:
-
+class EpipeTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) < 7:
@@ -255,13 +261,13 @@ class EpipeTokenBuilder:
 
 
 class TokenBuilder:
-    __LIST_OF_BUILDER = [
-        ShutdownTokenBuilder,
-        BfdTokenBuilder,
-        SdpTokenBuilder,
-        SvcCustomerTokenBuilder,
-        VplsTokenBuilder,
-        EpipeTokenBuilder,
+    __LIST_OF_BUILDER: t.List[AbstractTokenBuilder] = [
+        ShutdownTokenBuilder(),
+        BfdTokenBuilder(),
+        SdpTokenBuilder(),
+        SvcCustomerTokenBuilder(),
+        VplsTokenBuilder(),
+        EpipeTokenBuilder(),
     ]
 
     @staticmethod
