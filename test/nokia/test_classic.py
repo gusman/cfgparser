@@ -378,3 +378,89 @@ exit all
 
     result = parser.to_dict()
     assert ref == result
+
+
+def test_find():
+    cfg_text = """
+configure
+    router Base
+        interface "system"
+            address 1.1.1.5/32
+            no shutdown
+        exit
+        interface "to_p1_100g_1"
+            address 10.10.10.10/30
+            ldp-sync-timer 10
+            port 1/1/1
+            ingress
+            exit
+            bfd 10 receive 10 multiplier 3 type fp
+            no shutdown
+        exit
+        autonomous-system 65001
+        router-id 1.1.1.5
+    exit
+exit
+"""
+    lines = cfg_text.split("\n")
+
+    parser = nc_parser.Parser()
+    parser.parse(lines)
+
+    # deeper field
+    result = parser.find("configure/router/interface/shutdown")
+    ref = [{"shutdown": "no"}, {"shutdown": "no"}]
+    assert ref == result
+
+    # root context
+    result = parser.find("/configure")
+    ref = [
+        {
+            "configure": {
+                "router Base": {
+                    "router-id": "1.1.1.5",
+                    "autonomous-system": "65001",
+                    "interface to_p1_100g_1": {
+                        "shutdown": "no",
+                        "bfd": {
+                            "transmit": "10",
+                            "receive": "10",
+                            "multi": "3",
+                            "type": "fp",
+                        },
+                        "ingress": "",
+                        "port": "1/1/1",
+                        "ldp-sync-timer": "10",
+                        "address": "10.10.10.10/30",
+                    },
+                    "interface system": {"shutdown": "no", "address": "1.1.1.5/32"},
+                }
+            }
+        }
+    ]
+    assert ref == result
+
+    result = parser.find("configure/router/router")
+    ref = [{"router-id": "1.1.1.5"}]
+    assert ref == result
+
+    # rong path
+    result = parser.find("configure/interface")
+    ref = []
+
+    # multiple fields
+    result = parser.find("configure/router/interface")
+    ref = [
+        {
+            "interface to_p1_100g_1": {
+                "shutdown": "no",
+                "bfd": {"transmit": "10", "receive": "10", "multi": "3", "type": "fp"},
+                "ingress": "",
+                "port": "1/1/1",
+                "ldp-sync-timer": "10",
+                "address": "10.10.10.10/30",
+            }
+        },
+        {"interface system": {"shutdown": "no", "address": "1.1.1.5/32"}},
+    ]
+    assert ref == result

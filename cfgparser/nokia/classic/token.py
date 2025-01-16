@@ -15,7 +15,7 @@ class Token:
         indent: int,
         params: t.Optional[t.List] = None,
         childs: t.Optional[t.Dict] = None,
-    ):
+    ) -> None:
         self.name: str = name
         self.value: t.Optional[str] = value
         self.indent: int = indent
@@ -29,39 +29,20 @@ class Token:
             self.childs = childs
 
     @property
-    def id(self):
+    def id(self) -> str:
         if isinstance(self.value, str):
             return f"{self.name} {self.value}"
-        else:
-            return self.name
-
-    def is_attr_same(self, token: Token) -> bool:
-        return (
-            (self.name == token.name)
-            and (self.indent == token.indent)
-            and (self.value == token.value)
-        )
-
-    def find_token(self, token: Token) -> None | Token:
-        def recurse_find(token_tree: Token, token: Token) -> None | Token:
-            if token_tree.is_attr_same(token):
-                return token_tree
-
-            for c in token_tree.childs.values():
-                ret = recurse_find(c, token)
-                if ret:
-                    return ret
-            return None
-
-        return recurse_find(self, token)
+        return self.name
 
 
 class AbstractTokenBuilder(ABC):
+    @staticmethod
     @abstractmethod
-    def check_rule(self, words: t.List[str]) -> bool: ...
+    def check_rule(words: t.List[str]) -> bool: ...
 
+    @staticmethod
     @abstractmethod
-    def create(self, words: t.List[str], indent: int) -> Token: ...
+    def create(words: t.List[str], indent: int) -> Token: ...
 
 
 class DefaultTokenBuilder(AbstractTokenBuilder):
