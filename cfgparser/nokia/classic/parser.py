@@ -8,6 +8,7 @@ from cfgparser.nokia.classic.finder import Query
 from cfgparser.nokia.classic.token import Token
 from cfgparser.nokia.classic.token import TokenBuilder
 from cfgparser.nokia.classic.transformer import Transformer
+from cfgparser.path.path import DataPath
 
 
 class Tree:
@@ -135,9 +136,9 @@ class Parser:
     def to_dict(self) -> dict:
         return Query(self._tree.tokens).to_dict()
 
-    def find(self, path: str) -> list:
-        paths = path.split("/")
-        paths = [p for p in paths if p]
-
-        tokens = Query(self._tree.tokens).query(paths)
+    def query(self, datapath: DataPath) -> list:
+        tokens = Query(self._tree.tokens).query(datapath)
         return [Transformer(t).to_dict() for t in tokens]
+
+    def get_paths(self) -> t.List[DataPath]:
+        return Query(self._tree.tokens).get_paths()

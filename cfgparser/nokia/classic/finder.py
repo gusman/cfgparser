@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
 import typing as t
 
 from cfgparser.nokia.classic.token import Token
 from cfgparser.nokia.classic.transformer import Transformer
+from cfgparser.path.path import DataPath
 
 
 class Finder:
@@ -76,9 +78,10 @@ class Query:
 
         return ret
 
-    def query(self, paths: t.List[str]) -> list:
+    def query(self, datapath: DataPath) -> list:
         tokens_to_search = self.tokens
         tokens_to_store: t.List[Token] = []
+        paths = datapath.paths
 
         # Find roots
         roots = []
@@ -105,3 +108,24 @@ class Query:
             ret = tokens_to_store
 
         return ret
+
+    def get_paths(self) -> t.List[DataPath]:
+
+        def traverse_data(token: Token, datapath: DataPath) -> t.List[DataPath]:
+            datapath.add(token.id)
+            paths = [copy.deepcopy(datapath)]
+
+            if token.childs:
+                for c in token.childs.values():
+                    ret = traverse_data(c, copy.deepcopy(datapath))
+                    paths.extend(ret)
+
+            return paths
+
+        # Create list of list data_path
+        paths = []
+        for token in self.tokens:
+            datapath = DataPath()
+            paths.extend(traverse_data(token, datapath))
+
+        return paths

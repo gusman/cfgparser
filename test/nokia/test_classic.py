@@ -1,4 +1,5 @@
 from cfgparser.nokia.classic import parser as nc_parser
+from cfgparser.path import parser as path_parser
 
 
 def test_parser_pass():
@@ -380,7 +381,7 @@ exit all
     assert ref == result
 
 
-def test_find():
+def test_get_paths():
     cfg_text = """
 configure
     router Base
@@ -406,50 +407,68 @@ exit
 
     parser = nc_parser.Parser()
     parser.parse(lines)
+    data_paths = parser.get_paths()
 
-    # deeper field
-    result = parser.find("configure/router/interface/shutdown")
-    ref = [{"shutdown": "no"}, {"shutdown": "no"}]
-    assert ref == result
-
-    # root context
-    result = parser.find("/configure")
     ref = [
-        {
-            "configure": {
-                "router Base": {
-                    "router-id": "1.1.1.5",
-                    "autonomous-system": "65001",
-                    "interface to_p1_100g_1": {
-                        "shutdown": "no",
-                        "bfd": {
-                            "transmit": "10",
-                            "receive": "10",
-                            "multi": "3",
-                            "type": "fp",
-                        },
-                        "ingress": "",
-                        "port": "1/1/1",
-                        "ldp-sync-timer": "10",
-                        "address": "10.10.10.10/30",
-                    },
-                    "interface system": {"shutdown": "no", "address": "1.1.1.5/32"},
-                }
-            }
-        }
+        ["configure"],
+        ["configure", "router Base"],
+        ["configure", "router Base", "router-id 1.1.1.5"],
+        ["configure", "router Base", "autonomous-system 65001"],
+        ["configure", "router Base", "interface to_p1_100g_1"],
+        ["configure", "router Base", "interface to_p1_100g_1", "shutdown no"],
+        ["configure", "router Base", "interface to_p1_100g_1", "bfd"],
+        ["configure", "router Base", "interface to_p1_100g_1", "bfd", "transmit 10"],
+        ["configure", "router Base", "interface to_p1_100g_1", "bfd", "receive 10"],
+        ["configure", "router Base", "interface to_p1_100g_1", "bfd", "multi 3"],
+        ["configure", "router Base", "interface to_p1_100g_1", "bfd", "type fp"],
+        ["configure", "router Base", "interface to_p1_100g_1", "ingress"],
+        ["configure", "router Base", "interface to_p1_100g_1", "port 1/1/1"],
+        ["configure", "router Base", "interface to_p1_100g_1", "ldp-sync-timer 10"],
+        [
+            "configure",
+            "router Base",
+            "interface to_p1_100g_1",
+            "address 10.10.10.10/30",
+        ],
+        ["configure", "router Base", "interface system"],
+        ["configure", "router Base", "interface system", "shutdown no"],
+        ["configure", "router Base", "interface system", "address 1.1.1.5/32"],
     ]
-    assert ref == result
 
-    result = parser.find("configure/router/router")
-    ref = [{"router-id": "1.1.1.5"}]
-    assert ref == result
+    result = [p.paths for p in data_paths]
+    assert result == ref
 
-    # rong path
-    result = parser.find("configure/interface")
-    ref = []
 
-    # multiple fields
-    result = parser.find("configure/router/interface")
+def test_query():
+    cfg_text = """
+configure
+    router Base
+        interface "system"
+            address 1.1.1.5/32
+            no shutdown
+        exit
+        interface "to_p1_100g_1"
+            address 10.10.10.10/30
+            ldp-sync-timer 10
+            port 1/1/1
+            ingress
+            exit
+            bfd 10 receive 10 multiplier 3 type fp
+            no shutdown
+        exit
+        autonomous-system 65001
+        router-id 1.1.1.5
+    exit
+exit
+"""
+    lines = cfg_text.split("\n")
+
+    cfg_parser = nc_parser.Parser()
+    cfg_parser.parse(lines)
+
+    datapath = path_parser.Parser("/configure/router/interface").parse()
+    result = cfg_parser.query(datapath)
+
     ref = [
         {
             "interface to_p1_100g_1": {
@@ -463,4 +482,5 @@ exit
         },
         {"interface system": {"shutdown": "no", "address": "1.1.1.5/32"}},
     ]
+
     assert ref == result
