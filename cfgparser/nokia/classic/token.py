@@ -21,6 +21,7 @@ class Token:
         self.indent: int = indent
         self.params: list = []
         self.childs: dict = {}
+        self.is_container: bool = False
 
         if params:
             self.params = params

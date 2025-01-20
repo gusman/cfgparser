@@ -105,6 +105,7 @@ class Tree:
         if not parent:
             return None
 
+        parent.is_container = True
         for c in childs:
             existing_c = Finder(parent).find_token(c)
             if existing_c:
