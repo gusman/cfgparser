@@ -5,7 +5,6 @@ import json
 import typing as t
 
 from prompt_toolkit import PromptSession
-
 from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import CompleteEvent
@@ -64,6 +63,7 @@ class CommandCompleter(Completer):
 
             yield found, search_text
 
+    # Need refactore and clean up
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> t.Iterable[Completion]:
@@ -86,10 +86,28 @@ class CommandCompleter(Completer):
                 if len(search_text) == 0 and path_text:
                     # Count string limiter and string markers
                     for s in reversed(path_text):
-                        if s in ['"', "/"]:
+                        if s == '"':
                             offset += 1
-
+                        elif s == "/":
+                            offset += 1
+                            break
+                        else:
+                            offset = 0
+                            break
                     path = f"/{path}"
+
+                elif search_text:
+                    path_text = path_text.rstrip(search_text)
+
+                    for s in reversed(path_text):
+                        if s == '"':
+                            offset += 1
+                        elif s == "/":
+                            break
+                        else:
+                            offset = 0
+                            break
+
                 yield Completion(path, start_position=-(len(search_text) + offset))
 
 
