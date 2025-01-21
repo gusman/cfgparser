@@ -134,8 +134,10 @@ class Parser:
 
         if start_parse:
             for line in lines:
-                token = self._tree.scan_line(line)
+                if line.startswith("# Finished"):
+                    break
 
+                token = self._tree.scan_line(line)
                 if token and token.name.startswith("exit"):
                     self._tree.backparse_from_token(token.indent)
 
