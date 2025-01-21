@@ -125,11 +125,19 @@ class Parser:
         self._tree = Tree()
 
     def parse(self, lines: t.Iterable) -> None:
+        # Move until start line detected
+        start_parse = False
         for line in lines:
-            token = self._tree.scan_line(line)
+            if line.startswith("# TiMOS"):
+                start_parse = True
+                break
 
-            if token and token.name.startswith("exit"):
-                self._tree.backparse_from_token(token.indent)
+        if start_parse:
+            for line in lines:
+                token = self._tree.scan_line(line)
+
+                if token and token.name.startswith("exit"):
+                    self._tree.backparse_from_token(token.indent)
 
     def dumps(self) -> str:
         return Query(self._tree.tokens).dump_str()

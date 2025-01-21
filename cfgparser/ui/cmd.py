@@ -16,7 +16,7 @@ def _get_args():
     cmd_parse = sub_parser.add_parser("parse", help="parse a config file")
     cmd_parse.add_argument("config_file", type=str, help="config file to parse")
     cmd_parse.add_argument(
-        "--data-path", type=str, help="the path of data in mode", required=False
+        "--datapath", type=str, help="the path of data in mode", required=False
     )
 
     # Parse sub command
@@ -42,6 +42,8 @@ def run():
     args = _get_args()
 
     if args.command == "parse":
-        _parse_nokia_classic(args.config_file, args.path)
+        print(args)
+        _parse_nokia_classic(args.config_file, args.datapath)
+
     elif args.command == "prompt":
         prompt.start()
