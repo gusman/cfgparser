@@ -115,6 +115,7 @@ class BfdTokenBuilder(AbstractTokenBuilder):
         name, tx_val, __, rx_val, __, multi_val, __, type_val = words
 
         token = Token(name, None, indent)
+        token.is_container = True
 
         child_indent = indent + INDENT_SZ
         token.childs["transmit"] = Token("transmit", rx_val, child_indent)
@@ -144,7 +145,9 @@ class SdpTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def create(words: list, indent: int) -> Token:
         name, value, delivery_type, __ = words
+
         token = Token(name, value, indent)
+        token.is_container = True
 
         child_indent = indent + INDENT_SZ
         token.childs["delivery-type"] = Token(
@@ -174,7 +177,9 @@ class SvcCustomerTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def create(words: list, indent: int) -> Token:
         name, value, __, cust_name, __ = words
+
         token = Token(name, value, indent)
+        token.is_container = True
 
         child_indent = indent + INDENT_SZ
         token.childs["name"] = Token("name", cust_name, child_indent)
@@ -203,7 +208,9 @@ class VplsTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def create(words: list, indent: int) -> Token:
         name, value, __, vpls_name, __, cust_id, __ = words
+
         token = Token(name, value, indent)
+        token.is_container = True
 
         child_indent = indent + INDENT_SZ
         token.childs["name"] = Token("name", vpls_name, child_indent)
@@ -233,7 +240,9 @@ class EpipeTokenBuilder(AbstractTokenBuilder):
     @staticmethod
     def create(words: list, indent: int) -> Token:
         name, value, __, epipe_name, __, cust_id, __ = words
+        
         token = Token(name, value, indent)
+        token.is_container = True
 
         child_indent = indent + INDENT_SZ
         token.childs["name"] = Token("name", epipe_name, child_indent)

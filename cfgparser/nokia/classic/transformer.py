@@ -37,7 +37,7 @@ class Transformer:
         data: dict = {}
 
         def traverse_data(token: Token, data: dict):
-            if token.is_container:
+            if token.is_container or token.childs:
                 data[token.id] = {}
                 for c in token.childs.values():
                     traverse_data(c, data[token.id])

@@ -287,7 +287,7 @@ exit
                         "transmit": "10",
                         "type": "fp",
                     },
-                    "ingress": "",
+                    "ingress": {},
                     "port": "1/1/1",
                     "ldp-sync-timer": "10",
                     "address": "10.10.10.10/30",
@@ -474,7 +474,7 @@ exit
             "interface to_p1_100g_1": {
                 "shutdown": "no",
                 "bfd": {"transmit": "10", "receive": "10", "multi": "3", "type": "fp"},
-                "ingress": "",
+                "ingress": {},
                 "port": "1/1/1",
                 "ldp-sync-timer": "10",
                 "address": "10.10.10.10/30",
