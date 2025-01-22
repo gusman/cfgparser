@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 import typing as t
 
-from cfgparser.nokia.classic.token import Token
-from cfgparser.nokia.classic.transformer import Transformer
+from cfgparser.tree.token import Token
+from cfgparser.tree.transformer import Transformer
 from cfgparser.path.path import DataPath
 
 

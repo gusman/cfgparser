@@ -3,12 +3,12 @@ from __future__ import annotations
 import re
 import typing as t
 
-from cfgparser.nokia.classic.finder import Finder
-from cfgparser.nokia.classic.finder import Query
-from cfgparser.nokia.classic.token import Token
-from cfgparser.nokia.classic.token import TokenBuilder
-from cfgparser.nokia.classic.transformer import Transformer
+from cfgparser.nokia.classic.lexer import TokenBuilder
+from cfgparser.tree.transformer import Transformer
 from cfgparser.path.path import DataPath
+from cfgparser.tree.finder import Finder
+from cfgparser.tree.finder import Query
+from cfgparser.tree.token import Token
 
 
 class Tree:
