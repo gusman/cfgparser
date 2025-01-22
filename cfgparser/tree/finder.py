@@ -3,9 +3,9 @@ from __future__ import annotations
 import copy
 import typing as t
 
+from cfgparser.path.path import DataPath
 from cfgparser.tree.token import Token
 from cfgparser.tree.transformer import Transformer
-from cfgparser.path.path import DataPath
 
 
 class Finder:
@@ -73,8 +73,9 @@ class Query:
             lst.append(Transformer(root_token).to_dict())
 
         ret = {}
-        if lst:
-            ret = lst[0]
+        for data in lst:
+            if isinstance(data, dict):
+                ret.update(data)
 
         return ret
 
