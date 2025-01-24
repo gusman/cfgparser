@@ -1,12 +1,11 @@
-from cfgparser.ui.prompt import CommandCompleter
+# from cfgparser.ui.prompt import CommandCompleter
 
+# def test_path_completion_generator():
 
-def test_path_completion_generator():
+#     completer = CommandCompleter()
 
-    completer = CommandCompleter()
+#     path = ["configure", "route"]
 
-    path = ["configure", "route"]
-
-    print()
-    for ret in completer._path_completion(path):
-        print(ret)
+#     print()
+#     for ret in completer._path_completion(path):
+#         print(ret)

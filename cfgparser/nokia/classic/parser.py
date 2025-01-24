@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 import typing as t
 
-from cfgparser.nokia.classic.lexer import TokenBuilder
 from cfgparser.base.base import BaseParser
+from cfgparser.nokia.classic.lexer import TokenBuilder
 from cfgparser.path.path import DataPath
 from cfgparser.tree.finder import Finder
 from cfgparser.tree.finder import Query
@@ -51,46 +51,14 @@ class Tree:
         indent = len(line_trimmed) - len(line_trimmed.lstrip())
 
         words = self._tokenize_line(line_clean)
+
+        # Calling a static class
         token = TokenBuilder.create_token(words, indent)
 
         if not token.name.startswith("exit"):
             self.tokens.append(token)
 
         return token
-
-    def _recurse_merge_dict_of_child(self, token_dst: Token, token_src: Token) -> None:
-        if not Finder(token_dst).is_attr_same(token_src):
-            return None
-
-        if not token_src.childs:
-            return None
-
-        for token_id, src_val in token_src.childs.items():
-            if token_id not in token_dst.childs:
-                token_dst.childs[token_id] = src_val
-            else:
-                dst_val = token_dst.childs[token_id]
-
-                if not isinstance(dst_val, Token) and isinstance(src_val, Token):
-                    token_dst.childs[token_id] = src_val
-                elif (
-                    isinstance(dst_val, Token)
-                    and not dst_val.childs
-                    and isinstance(src_val, Token)
-                    and src_val.childs
-                ):
-                    token_dst.childs[token_id] = src_val
-                elif (
-                    isinstance(dst_val, Token)
-                    and dst_val.childs
-                    and isinstance(src_val, Token)
-                    and src_val.childs
-                ):
-                    self._recurse_merge_dict_of_child(dst_val, src_val)
-                else:
-                    pass
-
-        return None
 
     def backparse_from_token(self, indent_sz: int) -> None:
         childs = []
@@ -110,7 +78,7 @@ class Tree:
         for c in childs:
             existing_c = Finder(parent).find_token(c)
             if existing_c:
-                self._recurse_merge_dict_of_child(existing_c, c)
+                Finder.recurse_merge_token(existing_c, c)
             else:
                 parent.childs[c.id] = c
 
@@ -136,11 +104,12 @@ class Parser(BaseParser):
         return ret
 
     def parse(self, lines: t.Iterable) -> None:
-        # Move until start line detected
+        # loop until start line detected
         for line in lines:
             if line.startswith("# TiMOS"):
                 break
 
+        # start parsing line
         for line in lines:
             if line.startswith("# Finished"):
                 break
