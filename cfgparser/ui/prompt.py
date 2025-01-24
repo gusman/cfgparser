@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import typing as t
 
 from prompt_toolkit import PromptSession
-from prompt_toolkit import print_formatted_text as print
+from prompt_toolkit import print_formatted_text as prompt_print
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import CompleteEvent
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.completion import Completion
 from prompt_toolkit.document import Document
 
-from cfgparser.nokia.classic.parser import Parser as NClsParser
-from cfgparser.path.parser import Parser as DPParser
+from cfgparser.base import base
+from cfgparser.cisco.parser import Parser as CiscoParser
+from cfgparser.nokia.classic.parser import Parser as NokiaClassicParser
+from cfgparser.path.parser import Parser as DataPathParser
 from cfgparser.path.path import DataPath
 
 
@@ -78,7 +81,7 @@ class CommandCompleter(Completer):
 
         elif cmd == "path" and len(line_parts) >= 2:
             path_text = line_parts[1]
-            datapath = DPParser(path_text).parse(clean_text=False)
+            datapath = DataPathParser(path_text).parse(clean_text=False)
 
             for path, search_text in self._path_completion(datapath.paths):
 
@@ -128,30 +131,51 @@ class CommandLine:
         }
 
         # Need to refactor
-        self._parser = NClsParser()
+        self._parser_list: t.List[base.BaseParser] = [
+            NokiaClassicParser(),
+            CiscoParser(),
+        ]
+        self._parser = base.NULL_PARSER
         self._completer = completer
+
+    def _identify_parser(self, fd: io.TextIOBase) -> base.BaseParser | None:
+        parser = None
+        for p in self._parser_list:
+            prompt_print(f"Checking parser: {p}")
+            fd.seek(0)
+            if p.identify(fd):
+                parser = p
+                break
+
+        fd.seek(0)
+        return parser
 
     def _handle_cmd_parse(self, args) -> None:
         cfgfile = args.configfile
-        print(f"Trying to parse '{cfgfile}'")
 
+        prompt_print(f"Trying to parse '{cfgfile}'")
         try:
             with open(args.configfile) as f_cfg:
-                self._parser.parse(f_cfg)
+                parser = self._identify_parser(f_cfg)
+                if parser:
+                    self._parser = parser
+                    self._parser.parse(f_cfg)
+                else:
+                    prompt_print("Cannot find correct parser")
         except OSError:
-            print(f"Cannot open file '{cfgfile}'")
+            prompt_print.warning(f"Cannot open file '{cfgfile}'")
         else:
-            print(f"Sucess parse file '{cfgfile}'")
+            prompt_print(f"Sucess parse file '{cfgfile}'")
 
             self._completer.args["path"] = self._parser.to_dict()
 
     def _handle_cmd_path(self, args) -> None:
-        data_path = DPParser(args.datapath).parse()
+        data_path = DataPathParser(args.datapath).parse()
 
         data = self._parser.query(data_path)
-        print(json.dumps(data, indent=4))
+        prompt_print(json.dumps(data, indent=4))
 
-    def parse_line(self, line: str) -> None:
+    def parse_prompt_line(self, line: str) -> None:
         # Separate command and parameters
         words = line.split(" ", 1)
 
@@ -167,7 +191,7 @@ class CommandLine:
         # Command that requires parser
         args_parser = self._cmd_arg_parsers.get(cmd)
         if not args_parser:
-            print(f"Command '{cmd}' is unknown or not recognized")
+            prompt_print(f"Command '{cmd}' is unknown or not recognized")
             return None
 
         # Need to handle this ..
@@ -206,4 +230,4 @@ def start():
         except (EOFError, SystemExit):
             break
         else:
-            cmd_line.parse_line(text)
+            cmd_line.parse_prompt_line(text)

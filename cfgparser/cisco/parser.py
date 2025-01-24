@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing as t
 
+from cfgparser.base.base import BaseParser
 from cfgparser.path.path import DataPath
 from cfgparser.tree.finder import Query
 from cfgparser.tree.token import Token
@@ -19,7 +20,7 @@ class Tree:
 
         elif curr_token.value and name != curr_token.value:
             curr_token.childs[curr_token.value] = Token(curr_token.value, None, 0)
-            curr_token.value = ""
+            curr_token.value = None
             curr_token.childs[name] = Token(name, None, 0)
 
         elif name not in curr_token.childs:
@@ -35,7 +36,7 @@ class Tree:
                 break
         else:
             if curr_token.value == name:
-                curr_token.value = ""
+                curr_token.value = None
             curr_token.childs[name] = Token(name, None, 0)
             next_token = curr_token.childs[name]
 
@@ -60,7 +61,7 @@ class Tree:
             return None
 
         # Get root with the first word
-        w = words[0]
+        w = words[0].strip()
         curr_token = self._get_root_token(w, indent_size)
 
         if len(words) <= 1:
@@ -69,7 +70,7 @@ class Tree:
         words = words[1:]
         while words:
             indent_size += 1
-            w = words[0]
+            w = words[0].strip()
 
             if len(words) == 1:
                 self._tokenize_last_word(w, curr_token)
@@ -81,13 +82,28 @@ class Tree:
         return None
 
 
-class Parser:
+class Parser(BaseParser):
     def __init__(self) -> None:
         self._tree = Tree()
 
+    @staticmethod
+    def identify(lines: t.Iterable) -> bool:
+        ret = False
+
+        for line in lines:
+            if line.strip() == "!":
+                ret = True
+                break
+        return ret
+
+    @staticmethod
+    def _move_to_start_of_config(lines: t.Iterable) -> None:
+        for line in lines:
+            if line.strip() == "!":
+                break
+
     def parse(self, lines: t.Iterable) -> None:
-        # Move until start line detected
-        # parser = Parser()
+        self._move_to_start_of_config(lines)
 
         prev_lines = []
         prev_line = ""
@@ -98,6 +114,9 @@ class Parser:
             line_trimmed = line.rstrip()
             if line == "!":
                 continue
+
+            if line == "end":
+                break
 
             curr_indent = len(line_trimmed) - len(line_trimmed.lstrip())
 
@@ -113,8 +132,6 @@ class Parser:
                 for _ in range(0, int(backward_indent_steps)):
                     prev_lines.pop()
 
-            # print(curr_indent, prev_indent)
-            # print(curr_line)
             curr_line = " ".join(prev_lines + [line])
             self._tree.scan_line(curr_line, indent_size=curr_indent)
 

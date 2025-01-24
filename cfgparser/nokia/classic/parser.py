@@ -4,11 +4,12 @@ import re
 import typing as t
 
 from cfgparser.nokia.classic.lexer import TokenBuilder
-from cfgparser.tree.transformer import Transformer
+from cfgparser.base.base import BaseParser
 from cfgparser.path.path import DataPath
 from cfgparser.tree.finder import Finder
 from cfgparser.tree.finder import Query
 from cfgparser.tree.token import Token
+from cfgparser.tree.transformer import Transformer
 
 
 class Tree:
@@ -120,9 +121,19 @@ class Tree:
         return len(self.tokens) <= 1
 
 
-class Parser:
+class Parser(BaseParser):
     def __init__(self) -> None:
         self._tree = Tree()
+
+    @staticmethod
+    def identify(lines: t.Iterable) -> bool:
+        ret = False
+        for line in lines:
+            if line.startswith("# TiMOS"):
+                ret = True
+                break
+
+        return ret
 
     def parse(self, lines: t.Iterable) -> None:
         # Move until start line detected
