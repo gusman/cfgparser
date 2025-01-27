@@ -169,3 +169,75 @@ username sesha privilege 15 secret 5 $/askdjfieowka;lsdkfjaeiwokj
     result = parser.to_dict()
     assert result == ref
 
+
+def test_no_line_parser():
+    cfg_text = """
+no platform punt-keepalive disable-kernel-core
+platform bfd-debug-trace 1
+platform xconnect load-balance-hash-algo mac-ip-instanceid
+platform tcam-parity-error enable
+platform tcam-threshold alarm-frequency 1
+interface Port-channel3
+ description ADI-ADI;APHYDADIPAR01;mc-BSC01 Module-0;L1;001000M;XXXXXXXXXXXXXXXXXXXX;Po3;Po3
+ no ip address
+ no ip redirects
+ no ip unreachables
+ no ip proxy-arp
+ negotiation auto
+ storm-control broadcast level 0.10
+ storm-control multicast level 0.10
+ service-policy input ACCESS_IN
+ service instance 101 ethernet
+  encapsulation dot1q 101
+  rewrite ingress tag pop 1 symmetric
+  bridge-domain 101
+ !
+!
+"""
+    ref = {
+        "platform": {
+            "punt-keepalive": {"disable-kernel-core": "no"},
+            "bfd-debug-trace": "1",
+            "xconnect": {"load-balance-hash-algo": "mac-ip-instanceid"},
+            "tcam-parity-error": "enable",
+            "tcam-threshold": {"alarm-frequency": "1"},
+        },
+        "interface": {
+            "Port-channel3": {
+                "description": "ADI-ADI;APHYDADIPAR01;mc-BSC01 Module-0;L1;001000M;XXXXXXXXXXXXXXXXXXXX;Po3;Po3",
+                "ip": {
+                    "address": "no",
+                    "redirects": "no",
+                    "unreachables": "no",
+                    "proxy-arp": "no",
+                },
+                "negotiation": "auto",
+                "storm-control": {
+                    "broadcast": {"level": "0.10"},
+                    "multicast": {"level": "0.10"},
+                },
+                "service-policy": {"input": "ACCESS_IN"},
+                "service": {
+                    "instance": {
+                        "101": {
+                            "ethernet": {
+                                "encapsulation": {"dot1q": "101"},
+                                "rewrite": {
+                                    "ingress": {"tag": {"pop": {"1": "symmetric"}}}
+                                },
+                                "bridge-domain": "101",
+                            }
+                        }
+                    }
+                },
+            }
+        },
+    }
+    lines = cfg_text.split("\n")
+
+    parser = cisco_parser.Parser()
+    parser.parse(lines)
+    result = parser.to_dict()
+
+    assert ref == result
+

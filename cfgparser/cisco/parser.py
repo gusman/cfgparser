@@ -5,7 +5,8 @@ import typing as t
 from cfgparser.base.base import BaseParser
 from cfgparser.cisco.tokenizer import TokenBuilder
 from cfgparser.path.path import DataPath
-from cfgparser.tree.finder import Finder, Query
+from cfgparser.tree.finder import Finder
+from cfgparser.tree.finder import Query
 from cfgparser.tree.token import Token
 from cfgparser.tree.transformer import Transformer
 
@@ -157,11 +158,13 @@ class Parser(BaseParser):
         banner_scan = False
         banner_lines = ""
         for line in lines:
+            line_stripped = line.strip()
             line_trimmed = line.rstrip()
-            if line.startswith("!"):
+
+            if line_stripped.startswith("!"):
                 continue
 
-            if line.strip() == "end":
+            if line_stripped == "end":
                 break
 
             if banner_scan:
@@ -194,6 +197,11 @@ class Parser(BaseParser):
                 ) / indent_step_sz
                 for _ in range(0, int(backward_indent_steps)):
                     prev_lines.pop()
+
+            if line_stripped.startswith("no "):
+                parts = line_stripped.split(" ")
+                parts = parts[1:] + [parts[0]]
+                line = " ".join(parts)
 
             curr_line = " ".join(prev_lines + [line])
             self._tree.scan_line(curr_line, indent_sz=curr_indent_sz)

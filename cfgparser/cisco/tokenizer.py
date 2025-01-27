@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import typing as t
 
 from cfgparser.tree.token import AbstractTokenBuilder
@@ -8,7 +9,7 @@ from cfgparser.tree.token import Token
 INDENT_SZ = 1
 
 
-class BannerTokenBuilder(AbstractTokenBuilder):
+class BannerToken(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) >= 2 and words[0] == "banner" and words[1] in ["login", "motd"]:
@@ -30,7 +31,43 @@ class BannerTokenBuilder(AbstractTokenBuilder):
         return banner_token
 
 
-class UserPasswordBuilder(AbstractTokenBuilder):
+class IfaceIpAddressToken(AbstractTokenBuilder):
+    @staticmethod
+    def check_rule(words: list) -> bool:
+        if len(words) != 3:
+            return False
+
+        if words[0] != "address":
+            return False
+
+        try:
+            ipaddress.ip_address(words[1])
+        except ValueError:
+            return False
+
+        try:
+            ipaddress.ip_address(words[2])
+        except ValueError:
+            return False
+
+        return True
+
+    @staticmethod
+    def create(words: list, indent: int) -> Token:
+        addr_text, ipval, ipmask = words
+
+        passwd_token = Token(addr_text, None, indent)
+        passwd_token.is_container = True
+
+        ipaddr_token = Token("ipaddress", ipval, indent + INDENT_SZ)
+        ipmask_token = Token("netmask", ipmask, indent + INDENT_SZ)
+        passwd_token.childs["ipaddress"] = ipaddr_token
+        passwd_token.childs["netmask"] = ipmask_token
+
+        return passwd_token
+
+
+class UserPasswordToken(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) == 3 and words[0] == "password" and str(words[1]).isdigit():
@@ -53,7 +90,7 @@ class UserPasswordBuilder(AbstractTokenBuilder):
         return passwd_token
 
 
-class UserPrivilegeBuilder(AbstractTokenBuilder):
+class UserPrivilegeToken(AbstractTokenBuilder):
     @staticmethod
     def check_rule(words: list) -> bool:
         if len(words) == 5 and words[0] == "privilege" and words[2] == "secret":
@@ -83,11 +120,30 @@ class UserPrivilegeBuilder(AbstractTokenBuilder):
         return priv_token
 
 
+class DescriptionToken(AbstractTokenBuilder):
+    @staticmethod
+    def check_rule(words: list) -> bool:
+        if len(words) >= 2 and words[0] == "description":
+            return True
+
+        return False
+
+    @staticmethod
+    def create(words: list, indent: int) -> Token:
+        desc_token = Token("description", " ".join(words[1:]), indent)
+
+        return desc_token
+
+
 class TokenBuilder:
     __LIST_OF_BUILDER: t.List[AbstractTokenBuilder] = [
-        BannerTokenBuilder(),
-        UserPrivilegeBuilder(),
-        UserPasswordBuilder(),
+        BannerToken(),
+        UserPrivilegeToken(),
+        UserPasswordToken(),
+        IfaceIpAddressToken(),
+        # Description must be the last for matching
+        # Because the check rule is a bit greedy
+        DescriptionToken(),
     ]
 
     @staticmethod
