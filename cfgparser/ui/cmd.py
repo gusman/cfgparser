@@ -5,9 +5,9 @@ import typing as t
 from loguru import logger
 
 from cfgparser.base import base
-from cfgparser.cisco.parser import Parser as CiscoParser
-from cfgparser.nokia.classic.parser import Parser as NokiaClassicParser
-from cfgparser.path import parser as dp_parser
+from cfgparser.cisco.parser import CiscoParser
+from cfgparser.nokia.classic.parser import NokiaClassicParser
+from cfgparser.path.parser import DataPathParser
 from cfgparser.ui import prompt
 
 
@@ -56,7 +56,7 @@ def _parse(f_path: str, path: str) -> None:
         parser.parse(fd)
 
     if path:
-        datapath = dp_parser.Parser(path).parse()
+        datapath = DataPathParser(path).parse()
         logger.info(
             f"Data:\n{json.dumps(parser.query(datapath), indent=4, sort_keys=True)}"
         )

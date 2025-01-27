@@ -17,13 +17,13 @@ class Token:
     kind: TokenKind = TokenKind.TEXT
 
 
+@dataclasses.dataclass
 class Symbol:
-    def __init__(self, delimiter: str = "/"):
-        self.delimiter = "/"
-        self.maps = {
-            delimiter: TokenKind.DELIMITER,
-            '"': TokenKind.STR_QUOTE,
-        }
+    delimiter = "/"
+    maps = {
+        delimiter: TokenKind.DELIMITER,
+        '"': TokenKind.STR_QUOTE,
+    }
 
 
 class DataPath:

@@ -135,21 +135,20 @@ class DescriptionToken(AbstractTokenBuilder):
         return desc_token
 
 
-class TokenBuilder:
-    __LIST_OF_BUILDER: t.List[AbstractTokenBuilder] = [
-        BannerToken(),
-        UserPrivilegeToken(),
-        UserPasswordToken(),
-        IfaceIpAddressToken(),
-        # Description must be the last for matching
-        # Because the check rule is a bit greedy
-        DescriptionToken(),
-    ]
+__LIST_OF_BUILDER: t.List[AbstractTokenBuilder] = [
+    BannerToken(),
+    UserPrivilegeToken(),
+    UserPasswordToken(),
+    IfaceIpAddressToken(),
+    # Description must be the last for matching
+    # Because the check rule is a bit greedy
+    DescriptionToken(),
+]
 
-    @staticmethod
-    def create_token(words: list, indent: int) -> Token | None:
-        for builder in TokenBuilder.__LIST_OF_BUILDER:
-            if builder.check_rule(words):
-                return builder.create(words, indent)
 
-        return None
+def create_token(words: list, indent: int) -> Token | None:
+    for builder in __LIST_OF_BUILDER:
+        if builder.check_rule(words):
+            return builder.create(words, indent)
+
+    return None

@@ -14,9 +14,9 @@ from prompt_toolkit.completion import Completion
 from prompt_toolkit.document import Document
 
 from cfgparser.base import base
-from cfgparser.cisco.parser import Parser as CiscoParser
-from cfgparser.nokia.classic.parser import Parser as NokiaClassicParser
-from cfgparser.path.parser import Parser as DataPathParser
+from cfgparser.cisco.parser import CiscoParser
+from cfgparser.nokia.classic.parser import NokiaClassicParser
+from cfgparser.path.parser import  DataPathParser
 
 
 class CommandCompleter(Completer):

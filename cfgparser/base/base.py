@@ -64,7 +64,7 @@ class NullParser(AbstractParser):
 
 class BaseParser(NullParser):
     def __init__(self) -> None:
-        self._tree = None
+        self._tree: t.Any = None
 
     def dumps(self) -> str:
         if not self._tree:
@@ -73,7 +73,7 @@ class BaseParser(NullParser):
 
     def to_dict(self) -> dict:
         if not self._tree:
-            return ""
+            return {}
 
         return Query(self._tree.tokens).to_dict()
 

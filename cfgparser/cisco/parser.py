@@ -3,8 +3,7 @@ from __future__ import annotations
 import typing as t
 
 from cfgparser.base.base import BaseParser
-from cfgparser.cisco.tokenizer import INDENT_SZ
-from cfgparser.cisco.tokenizer import TokenBuilder
+from cfgparser.cisco import tokenizer
 from cfgparser.tree.finder import Finder
 from cfgparser.tree.token import Token
 
@@ -12,7 +11,7 @@ from cfgparser.tree.token import Token
 class CiscoTree:
     def __init__(self):
         self.tokens = []
-        self.indent_step_sz = INDENT_SZ
+        self.indent_step_sz = tokenizer.INDENT_SZ
 
     @staticmethod
     def _tokenize_last_word(name: str, curr_token: Token, indent_sz: int) -> None:
@@ -63,7 +62,7 @@ class CiscoTree:
         token = None
         merged = False
 
-        token = TokenBuilder.create_token(words, indent_sz)
+        token = tokenizer.create_token(words, indent_sz)
         if token:
             for dst_token in parents:
                 merged = Finder.recurse_merge_token(dst_token, token)
@@ -121,7 +120,7 @@ class CiscoTree:
         return None
 
 
-class Parser(BaseParser):
+class CiscoParser(BaseParser):
     def __init__(self) -> None:
         super().__init__()
         self._tree = CiscoTree()
@@ -142,11 +141,67 @@ class Parser(BaseParser):
             if line.strip() == "!":
                 break
 
+    @staticmethod
+    def _reposition_line_start_with_no(line: str, indent_sz: int) -> str:
+        ret = line
+        clean_line = line.strip()
+
+        if clean_line.startswith("no "):
+            parts = clean_line.split(" ")
+            parts = parts[1:] + [parts[0]]
+
+            indent_space = " " * indent_sz
+            ret = indent_space + " ".join(parts)
+
+        return ret
+
+    @staticmethod
+    def _scan_banner(
+        banner_scan: bool, banner_line: str, line: str
+    ) -> t.Tuple[bool, str]:
+        if banner_scan:
+            if line.count("^C") % 2 != 0:
+                banner_line = banner_line + line.strip()
+                banner_scan = False
+            else:
+                banner_line += line + "\n"
+        else:
+            if line.startswith("banner") and (line.count("^C") % 2 != 0):
+                banner_scan = True
+                banner_line += line + "\n"
+
+        return banner_scan, banner_line
+
+    @staticmethod
+    def _construct_parent_lines(
+        parent_lines: t.List[str],
+        parent_line: str,
+        curr_indent_sz: int,
+        prev_indent_sz: int,
+    ) -> t.List[str]:
+        indent_step_sz = 1
+
+        # Identify indent step size
+        if prev_indent_sz == 0 and curr_indent_sz > prev_indent_sz:
+            indent_step_sz = curr_indent_sz - prev_indent_sz
+
+        if curr_indent_sz == 0:
+            parent_lines = []
+
+        elif curr_indent_sz > prev_indent_sz:
+            parent_lines.append(parent_line)
+
+        elif curr_indent_sz < prev_indent_sz:
+            backward_indent_steps = (prev_indent_sz - curr_indent_sz) / indent_step_sz
+            for _ in range(0, int(backward_indent_steps)):
+                parent_lines.pop()
+
+        return parent_lines
+
     def parse(self, lines: t.Iterable) -> None:
-        prev_lines: t.List[str] = []
-        prev_line = ""
+        parent_lines: t.List[str] = []
+        parent_line = ""
         prev_indent_sz = 0
-        indent_step_sz = 0
 
         # Loop untile line that can be parsed
         for line in lines:
@@ -155,54 +210,47 @@ class Parser(BaseParser):
 
         # start parsing line
         banner_scan = False
-        banner_lines = ""
+        banner_line = ""
         for line in lines:
             line_stripped = line.strip()
             line_trimmed = line.rstrip()
 
+            # Skip comments
             if line_stripped.startswith("!"):
                 continue
 
+            # End of valid config line
             if line_stripped == "end":
                 break
 
+            # Check if the line is for banner text
+            banner_scan, banner_line = self._scan_banner(banner_scan, banner_line, line)
+
+            # Scan next line if current line part of banner
             if banner_scan:
-                if line.count("^C") % 2 != 0:
-                    line = banner_lines + line.strip()
-                    banner_scan = False
-                else:
-                    banner_lines += line + "\n"
-                    continue
-            else:
-                if line.startswith("banner") and (line.count("^C") % 2 != 0):
-                    banner_scan = True
-                    banner_lines += line + "\n"
-                    continue
+                continue
+
+            # Banner scan is done and use banner_lines as current line
+            if banner_line:
+                line = banner_line
+                banner_line = ""
 
             curr_indent_sz = len(line_trimmed) - len(line_trimmed.lstrip())
 
-            # Identify indent step size
-            if prev_indent_sz == 0 and curr_indent_sz > prev_indent_sz:
-                indent_step_sz = curr_indent_sz - prev_indent_sz
+            # Construct parent line if current line is indented
+            parent_lines = self._construct_parent_lines(
+                parent_lines, parent_line, curr_indent_sz, prev_indent_sz
+            )
 
-            if curr_indent_sz == 0:
-                prev_lines = []
-            elif curr_indent_sz > prev_indent_sz:
-                prev_lines.append(prev_line)
-            elif curr_indent_sz < prev_indent_sz:
-                backward_indent_steps = (
-                    prev_indent_sz - curr_indent_sz
-                ) / indent_step_sz
-                for _ in range(0, int(backward_indent_steps)):
-                    prev_lines.pop()
+            # Reposition line "no" in line text
+            line = self._reposition_line_start_with_no(line, curr_indent_sz)
 
-            if line_stripped.startswith("no "):
-                parts = line_stripped.split(" ")
-                parts = parts[1:] + [parts[0]]
-                line = " ".join(parts)
+            # Combine parent line and current line, in here text shall have no indent
+            curr_line = " ".join(parent_lines + [line])
 
-            curr_line = " ".join(prev_lines + [line])
+            # Scan line by separating words
             self._tree.scan_line(curr_line)
 
+            # Update indent and parent line tracker
             prev_indent_sz = curr_indent_sz
-            prev_line = line
+            parent_line = line

@@ -1,4 +1,4 @@
-from cfgparser.cisco import parser as cisco_parser
+from cfgparser.cisco.parser import CiscoParser
 
 
 def test_parser():
@@ -31,7 +31,7 @@ bridge-domain 11
     }
     lines = cfg_text.split("\n")
 
-    parser = cisco_parser.Parser()
+    parser = CiscoParser()
     parser.parse(lines)
     result = parser.to_dict()
     assert ref == result
@@ -122,7 +122,7 @@ ntp server vrf OAM 10.144.80.130
 
     lines = cfg_text.split("\n")
 
-    parser = cisco_parser.Parser()
+    parser = CiscoParser()
     parser.parse(lines)
 
     result = parser.to_dict()
@@ -163,7 +163,7 @@ username sesha privilege 15 secret 5 $/askdjfieowka;lsdkfjaeiwokj
 
     lines = cfg_text.split("\n")
 
-    parser = cisco_parser.Parser()
+    parser = CiscoParser()
     parser.parse(lines)
 
     result = parser.to_dict()
@@ -235,9 +235,8 @@ interface Port-channel3
     }
     lines = cfg_text.split("\n")
 
-    parser = cisco_parser.Parser()
+    parser = CiscoParser()
     parser.parse(lines)
     result = parser.to_dict()
 
     assert ref == result
-

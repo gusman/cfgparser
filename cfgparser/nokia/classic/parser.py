@@ -4,12 +4,12 @@ import re
 import typing as t
 
 from cfgparser.base.base import BaseParser
-from cfgparser.nokia.classic.tokenizer import TokenBuilder
+from cfgparser.nokia.classic import tokenizer
 from cfgparser.tree.finder import Finder
 from cfgparser.tree.token import Token
 
 
-class Tree:
+class NokiaTree:
     def __init__(self) -> None:
         self.tokens: t.List[Token] = []
 
@@ -50,7 +50,7 @@ class Tree:
         words = self._tokenize_line(line_clean)
 
         # Calling a static class
-        token = TokenBuilder.create_token(words, indent)
+        token = tokenizer.create_token(words, indent)
 
         if not token.name.startswith("exit"):
             self.tokens.append(token)
@@ -86,19 +86,19 @@ class Tree:
         return len(self.tokens) <= 1
 
 
-class Parser(BaseParser):
+class NokiaClassicParser(BaseParser):
     def __init__(self) -> None:
         super().__init__()
-        self._tree = Tree()
+        self._tree = NokiaTree()
 
     @staticmethod
     def identify(lines: t.Iterable) -> bool:
         ret = False
+
         for line in lines:
             if line.startswith("# TiMOS"):
                 ret = True
                 break
-
         return ret
 
     def parse(self, lines: t.Iterable) -> None:
