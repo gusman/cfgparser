@@ -6,7 +6,6 @@ from loguru import logger
 
 from cfgparser.base import base
 from cfgparser.cisco.parser import Parser as CiscoParser
-from cfgparser.nokia.classic import parser as nc_parser
 from cfgparser.nokia.classic.parser import Parser as NokiaClassicParser
 from cfgparser.path import parser as dp_parser
 from cfgparser.ui import prompt
@@ -33,7 +32,7 @@ def _get_args():
 
 
 def _parse(f_path: str, path: str) -> None:
-    parsers: t.List[base.BaseParser] = {
+    parsers: t.Dict[str, base.BaseParser] = {
         "Nokia Classic": NokiaClassicParser(),
         "Cisco": CiscoParser(),
     }

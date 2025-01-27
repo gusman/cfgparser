@@ -33,7 +33,6 @@ class Parser:
 
         return tokens
 
-  
     @staticmethod
     def _extract_texts(tokens: t.List[Token]) -> list:
         ret = []

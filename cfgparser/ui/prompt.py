@@ -8,14 +8,15 @@ import typing as t
 from prompt_toolkit import PromptSession
 from prompt_toolkit import print_formatted_text as prompt_print
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.completion import CompleteEvent, Completer, Completion
+from prompt_toolkit.completion import CompleteEvent
+from prompt_toolkit.completion import Completer
+from prompt_toolkit.completion import Completion
 from prompt_toolkit.document import Document
 
 from cfgparser.base import base
 from cfgparser.cisco.parser import Parser as CiscoParser
 from cfgparser.nokia.classic.parser import Parser as NokiaClassicParser
 from cfgparser.path.parser import Parser as DataPathParser
-from cfgparser.path.path import DataPath
 
 
 class CommandCompleter(Completer):
@@ -126,14 +127,14 @@ class CommandLine:
         }
 
         # Need to refactor
-        self._parsers: t.Dict[base.BaseParser] = {
+        self._parsers: t.Dict[str, base.AbstractParser] = {
             "Nokia Classic": NokiaClassicParser(),
             "Cisco": CiscoParser(),
         }
-        self._parser = base.NULL_PARSER
+        self._parser: base.AbstractParser = base.NULL_PARSER
         self._completer = completer
 
-    def _identify_parser(self, fd: io.TextIOBase) -> base.BaseParser | None:
+    def _identify_parser(self, fd: io.TextIOBase) -> base.AbstractParser | None:
         parser = None
         for name, p in self._parsers.items():
             fd.seek(0)

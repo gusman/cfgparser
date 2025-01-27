@@ -3,18 +3,16 @@ from __future__ import annotations
 import typing as t
 
 from cfgparser.base.base import BaseParser
+from cfgparser.cisco.tokenizer import INDENT_SZ
 from cfgparser.cisco.tokenizer import TokenBuilder
-from cfgparser.path.path import DataPath
 from cfgparser.tree.finder import Finder
-from cfgparser.tree.finder import Query
 from cfgparser.tree.token import Token
-from cfgparser.tree.transformer import Transformer
 
 
-class Tree:
+class CiscoTree:
     def __init__(self):
         self.tokens = []
-        self.indent_step_sz = 1
+        self.indent_step_sz = INDENT_SZ
 
     @staticmethod
     def _tokenize_last_word(name: str, curr_token: Token, indent_sz: int) -> None:
@@ -72,14 +70,14 @@ class Tree:
 
         return token, merged
 
-    def scan_line(self, line, indent_sz: int):
+    def scan_line(self, line):
         words = line.strip().split(" ")
         words = [w for w in words if w]
 
         if not words:
             return None
 
-        token, merged = self._lex_token(words, indent_sz, self.tokens)
+        token, merged = self._lex_token(words, 0, self.tokens)
         if token and merged:
             return None
 
@@ -89,7 +87,7 @@ class Tree:
 
         # Get root with the first word
         w = words[0].strip()
-        curr_token = self._get_root_token(w, indent_sz)
+        curr_token = self._get_root_token(w, 0)
 
         if len(words) <= 1:
             return None
@@ -116,16 +114,17 @@ class Tree:
             if len(words) == 1:
                 self._tokenize_last_word(w, curr_token, indent_sz)
                 break
-            else:
-                curr_token = self._next_token(w, curr_token, indent_sz)
-                words = words[1:]
+
+            curr_token = self._next_token(w, curr_token, indent_sz)
+            words = words[1:]
 
         return None
 
 
 class Parser(BaseParser):
     def __init__(self) -> None:
-        self._tree = Tree()
+        super().__init__()
+        self._tree = CiscoTree()
 
     @staticmethod
     def identify(lines: t.Iterable) -> bool:
@@ -144,7 +143,7 @@ class Parser(BaseParser):
                 break
 
     def parse(self, lines: t.Iterable) -> None:
-        prev_lines = []
+        prev_lines: t.List[str] = []
         prev_line = ""
         prev_indent_sz = 0
         indent_step_sz = 0
@@ -185,7 +184,6 @@ class Parser(BaseParser):
             # Identify indent step size
             if prev_indent_sz == 0 and curr_indent_sz > prev_indent_sz:
                 indent_step_sz = curr_indent_sz - prev_indent_sz
-                self._tree.indent_step_sz = indent_step_sz
 
             if curr_indent_sz == 0:
                 prev_lines = []
@@ -204,20 +202,7 @@ class Parser(BaseParser):
                 line = " ".join(parts)
 
             curr_line = " ".join(prev_lines + [line])
-            self._tree.scan_line(curr_line, indent_sz=curr_indent_sz)
+            self._tree.scan_line(curr_line)
 
             prev_indent_sz = curr_indent_sz
             prev_line = line
-
-    def dumps(self) -> str:
-        return Query(self._tree.tokens).dump_str()
-
-    def to_dict(self) -> dict:
-        return Query(self._tree.tokens).to_dict()
-
-    def query(self, datapath: DataPath) -> list:
-        tokens = Query(self._tree.tokens).query(datapath)
-        return [Transformer(t).to_dict() for t in tokens]
-
-    def get_paths(self) -> t.List[DataPath]:
-        return Query(self._tree.tokens).get_paths()

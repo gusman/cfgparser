@@ -5,10 +5,8 @@ import typing as t
 
 from cfgparser.base.base import BaseParser
 from cfgparser.nokia.classic.tokenizer import TokenBuilder
-from cfgparser.path.path import DataPath
-from cfgparser.tree.finder import Finder, Query
+from cfgparser.tree.finder import Finder
 from cfgparser.tree.token import Token
-from cfgparser.tree.transformer import Transformer
 
 
 class Tree:
@@ -90,6 +88,7 @@ class Tree:
 
 class Parser(BaseParser):
     def __init__(self) -> None:
+        super().__init__()
         self._tree = Tree()
 
     @staticmethod
@@ -116,16 +115,3 @@ class Parser(BaseParser):
             token = self._tree.scan_line(line)
             if token and token.name.startswith("exit"):
                 self._tree.backparse_from_token(token.indent)
-
-    def dumps(self) -> str:
-        return Query(self._tree.tokens).dump_str()
-
-    def to_dict(self) -> dict:
-        return Query(self._tree.tokens).to_dict()
-
-    def query(self, datapath: DataPath) -> list:
-        tokens = Query(self._tree.tokens).query(datapath)
-        return [Transformer(t).to_dict() for t in tokens]
-
-    def get_paths(self) -> t.List[DataPath]:
-        return Query(self._tree.tokens).get_paths()
