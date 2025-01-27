@@ -33,20 +33,21 @@ def _get_args():
 
 
 def _parse(f_path: str, path: str) -> None:
-    parser_list: t.List[base.BaseParser] = [
-        NokiaClassicParser(),
-        CiscoParser(),
-    ]
+    parsers: t.List[base.BaseParser] = {
+        "Nokia Classic": NokiaClassicParser(),
+        "Cisco": CiscoParser(),
+    }
 
     parser = None
     with open(f_path, "r") as fd:
-        for p in parser_list:
-            logger.info(f"Checking parser: {p}")
+        for name, p in parsers.items():
             fd.seek(0)
             if p.identify(fd):
-                logger.info("Found parser")
+                logger.info(f"Check parser '{name}': compatible")
                 parser = p
                 break
+
+            logger.info(f"Check parser '{name}': not compatible")
 
     if not parser:
         logger.info("Could not find correct parser")

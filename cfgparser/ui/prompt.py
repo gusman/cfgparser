@@ -8,9 +8,7 @@ import typing as t
 from prompt_toolkit import PromptSession
 from prompt_toolkit import print_formatted_text as prompt_print
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.completion import CompleteEvent
-from prompt_toolkit.completion import Completer
-from prompt_toolkit.completion import Completion
+from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
 
 from cfgparser.base import base
@@ -27,9 +25,6 @@ class CommandCompleter(Completer):
             "parse": {},
             "path": {},
         }
-
-    def load_paths(self, datapaths: t.List[DataPath]) -> None:
-        pass
 
     def _path_completion(self, path_parts: list) -> t.Iterable:
         def recurse_path_tree(path_tree: dict, path_parts: list):
@@ -66,7 +61,7 @@ class CommandCompleter(Completer):
 
             yield found, search_text
 
-    # Need refactore and clean up
+    # Need refactor and clean up
     def get_completions(
         self, document: Document, complete_event: CompleteEvent
     ) -> t.Iterable[Completion]:
@@ -131,21 +126,22 @@ class CommandLine:
         }
 
         # Need to refactor
-        self._parser_list: t.List[base.BaseParser] = [
-            NokiaClassicParser(),
-            CiscoParser(),
-        ]
+        self._parsers: t.Dict[base.BaseParser] = {
+            "Nokia Classic": NokiaClassicParser(),
+            "Cisco": CiscoParser(),
+        }
         self._parser = base.NULL_PARSER
         self._completer = completer
 
     def _identify_parser(self, fd: io.TextIOBase) -> base.BaseParser | None:
         parser = None
-        for p in self._parser_list:
-            prompt_print(f"Checking parser: {p}")
+        for name, p in self._parsers.items():
             fd.seek(0)
             if p.identify(fd):
+                prompt_print(f"Check parser '{name}': compatible")
                 parser = p
                 break
+            prompt_print(f"Check parser '{name}': not compatible")
 
         fd.seek(0)
         return parser
@@ -163,9 +159,9 @@ class CommandLine:
                 else:
                     prompt_print("Cannot find correct parser")
         except OSError:
-            prompt_print.warning(f"Cannot open file '{cfgfile}'")
+            prompt_print(f"Cannot open file '{cfgfile}'")
         else:
-            prompt_print(f"Sucess parse file '{cfgfile}'")
+            prompt_print(f"Success parse file '{cfgfile}'")
 
             self._completer.args["path"] = self._parser.to_dict()
 

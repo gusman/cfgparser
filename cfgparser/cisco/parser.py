@@ -3,10 +3,9 @@ from __future__ import annotations
 import typing as t
 
 from cfgparser.base.base import BaseParser
-from cfgparser.cisco.lexer import TokenBuilder
+from cfgparser.cisco.tokenizer import TokenBuilder
 from cfgparser.path.path import DataPath
-from cfgparser.tree.finder import Finder
-from cfgparser.tree.finder import Query
+from cfgparser.tree.finder import Finder, Query
 from cfgparser.tree.token import Token
 from cfgparser.tree.transformer import Transformer
 
