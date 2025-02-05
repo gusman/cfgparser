@@ -11,7 +11,11 @@ from cfgparser.tree.token import Token
 class CiscoTree:
     def __init__(self):
         self.tokens = []
-        self.indent_step_sz = tokenizer.INDENT_SZ
+        self.indent_step_sz = tokenizer.get_indent_step_sz()
+
+    def set_indent_step_sz(self, step_sz: int) -> None:
+        self.indent_step_sz = step_sz
+        tokenizer.set_indent_step_sz(step_sz)
 
     @staticmethod
     def _tokenize_last_word(name: str, curr_token: Token, indent_sz: int) -> None:
@@ -172,18 +176,19 @@ class CiscoParser(BaseParser):
 
         return banner_scan, banner_line
 
-    @staticmethod
     def _construct_parent_lines(
+        self,
         parent_lines: t.List[str],
         parent_line: str,
         curr_indent_sz: int,
         prev_indent_sz: int,
     ) -> t.List[str]:
-        indent_step_sz = 1
+        indent_step_sz = self._tree.indent_step_sz
 
         # Identify indent step size
         if prev_indent_sz == 0 and curr_indent_sz > prev_indent_sz:
             indent_step_sz = curr_indent_sz - prev_indent_sz
+            self._tree.set_indent_step_sz(indent_step_sz)
 
         if curr_indent_sz == 0:
             parent_lines = []

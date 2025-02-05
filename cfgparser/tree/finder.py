@@ -98,7 +98,6 @@ class Query:
     def dump_str(self) -> str:
         ret = ""
         for idx, root_token in enumerate(self.tokens):
-            print(idx, root_token)
             ret += f"[root: {idx}]\n"
             ret += Transformer(root_token).to_structured_text()
             ret += "\n"

@@ -6,7 +6,20 @@ import typing as t
 from cfgparser.tree.token import AbstractTokenBuilder
 from cfgparser.tree.token import Token
 
-INDENT_SZ = 1
+
+class _Attr:
+    indent_step_size: int = 1
+
+
+_attr = _Attr()
+
+
+def get_indent_step_sz() -> int:
+    return _attr.indent_step_size
+
+
+def set_indent_step_sz(indent_sz: int) -> None:
+    _attr.indent_step_size = indent_sz
 
 
 class BannerToken(AbstractTokenBuilder):
@@ -22,7 +35,7 @@ class BannerToken(AbstractTokenBuilder):
         banner_token = Token(words[0], None, indent)
         banner_token.is_container = True
 
-        child_token = Token(words[1], None, indent + INDENT_SZ)
+        child_token = Token(words[1], None, indent + _attr.indent_step_size)
         banner_token.childs[words[1]] = child_token
 
         if len(words) > 2:
@@ -59,8 +72,8 @@ class IfaceIpAddressToken(AbstractTokenBuilder):
         passwd_token = Token(addr_text, None, indent)
         passwd_token.is_container = True
 
-        ipaddr_token = Token("ipaddress", ipval, indent + INDENT_SZ)
-        ipmask_token = Token("netmask", ipmask, indent + INDENT_SZ)
+        ipaddr_token = Token("ipaddress", ipval, indent + _attr.indent_step_size)
+        ipmask_token = Token("netmask", ipmask, indent + _attr.indent_step_size)
         passwd_token.childs["ipaddress"] = ipaddr_token
         passwd_token.childs["netmask"] = ipmask_token
 
@@ -82,8 +95,8 @@ class UserPasswordToken(AbstractTokenBuilder):
         passwd_token = Token(passwd_text, None, indent)
         passwd_token.is_container = True
 
-        type_token = Token("type", passwd_type, indent + INDENT_SZ)
-        value_token = Token("value", passwd_val, indent + INDENT_SZ)
+        type_token = Token("type", passwd_type, indent + _attr.indent_step_size)
+        value_token = Token("value", passwd_val, indent + _attr.indent_step_size)
         passwd_token.childs["type"] = type_token
         passwd_token.childs["value"] = value_token
 
@@ -104,13 +117,15 @@ class UserPrivilegeToken(AbstractTokenBuilder):
         priv_token = Token(priv_text, None, indent)
         priv_token.is_container = True
 
-        priv_type_token = Token("type", priv_type, indent + INDENT_SZ)
+        priv_type_token = Token("type", priv_type, indent + _attr.indent_step_size)
 
-        secret_token = Token(secret_text, None, indent + INDENT_SZ)
+        secret_token = Token(secret_text, None, indent + _attr.indent_step_size)
         secret_token.is_container = True
 
-        secret_type_token = Token("type", secret_type, indent + (INDENT_SZ * 2))
-        secret_value_token = Token("value", secret_val, indent + (INDENT_SZ * 2))
+        secret_type_token = Token("type", secret_type, indent + (_attr.indent_step_size * 2))
+        secret_value_token = Token(
+            "value", secret_val, indent + (_attr.indent_step_size * 2)
+        )
         secret_token.childs["type"] = secret_type_token
         secret_token.childs["value"] = secret_value_token
 
@@ -150,5 +165,7 @@ def create_token(words: list, indent: int) -> Token | None:
     for builder in __LIST_OF_BUILDER:
         if builder.check_rule(words):
             return builder.create(words, indent)
+
+    return None
 
     return None
