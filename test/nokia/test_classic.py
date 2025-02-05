@@ -1,5 +1,6 @@
-from cfgparser.nokia.classic import parser as nc_parser
-from cfgparser.path import parser as path_parser
+from cfgparser.nokia.classic.parser import NokiaClassicParser
+from cfgparser.nokia.classic.parser import NokiaTree
+from cfgparser.path.parser import DataPathParser
 
 
 def test_parser_pass():
@@ -52,7 +53,7 @@ configure
 
     lines = cfg_text.split("\n")
 
-    parser = nc_parser.Parser()
+    parser = NokiaClassicParser()
     parser.parse(lines)
 
     result = parser.dumps()
@@ -129,7 +130,7 @@ configure
 
     lines = cfg_text.split("\n")
 
-    parser = nc_parser.Parser()
+    parser = NokiaClassicParser()
     parser.parse(lines)
 
     result = parser.dumps()
@@ -217,7 +218,7 @@ exit all
 
     lines = cfg_text.split("\n")
 
-    parser = nc_parser.Parser()
+    parser = NokiaClassicParser()
     parser.parse(lines)
 
     result = parser.to_dict()
@@ -227,27 +228,27 @@ exit all
 def test_tokenize_line():
     line = ' mda "iom high:375" up "hero here" 1\n'
 
-    result = nc_parser.Tree._tokenize_line(line)
+    result = NokiaTree._tokenize_line(line)
     assert result == ["mda", "iom high:375", "up", "hero here", "1"]
 
     line = ' mda "hello \n'
-    result = nc_parser.Tree._tokenize_line(line)
+    result = NokiaTree._tokenize_line(line)
     assert result == ["mda", '"hello']
 
     line = ' mda hello "\n'
-    result = nc_parser.Tree._tokenize_line(line)
+    result = NokiaTree._tokenize_line(line)
     assert result == ["mda", "hello", '"']
 
     line = ' "mda hello "\n'
-    result = nc_parser.Tree._tokenize_line(line)
+    result = NokiaTree._tokenize_line(line)
     assert result == ["mda hello "]
 
     line = ' "mda hello \n'
-    result = nc_parser.Tree._tokenize_line(line)
+    result = NokiaTree._tokenize_line(line)
     assert result == ['"mda', "hello"]
 
     line = ' user "snmpv3_user" \n'
-    result = nc_parser.Tree._tokenize_line(line)
+    result = NokiaTree._tokenize_line(line)
     assert result == ["user", "snmpv3_user"]
 
 
@@ -299,7 +300,7 @@ exit
 
     lines = cfg_text.split("\n")
 
-    parser = nc_parser.Parser()
+    parser = NokiaClassicParser()
     parser.parse(lines)
 
     assert ref == parser.to_dict()
@@ -374,7 +375,7 @@ exit all
     }
     lines = cfg_text.split("\n")
 
-    parser = nc_parser.Parser()
+    parser = NokiaClassicParser()
     parser.parse(lines)
 
     result = parser.to_dict()
@@ -405,7 +406,7 @@ exit
 """
     lines = cfg_text.split("\n")
 
-    parser = nc_parser.Parser()
+    parser = NokiaClassicParser()
     parser.parse(lines)
     data_paths = parser.get_paths()
 
@@ -463,10 +464,10 @@ exit
 """
     lines = cfg_text.split("\n")
 
-    cfg_parser = nc_parser.Parser()
+    cfg_parser = NokiaClassicParser()
     cfg_parser.parse(lines)
 
-    datapath = path_parser.Parser("/configure/router/interface").parse()
+    datapath = DataPathParser("/configure/router/interface").parse()
     result = cfg_parser.query(datapath)
 
     ref = [

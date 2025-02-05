@@ -3,9 +3,9 @@ from __future__ import annotations
 import copy
 import typing as t
 
-from cfgparser.nokia.classic.token import Token
-from cfgparser.nokia.classic.transformer import Transformer
 from cfgparser.path.path import DataPath
+from cfgparser.tree.token import Token
+from cfgparser.tree.transformer import Transformer
 
 
 class Finder:
@@ -52,6 +52,44 @@ class Finder:
 
         return self._find_childs(self.token, token_id, _compare)
 
+    @staticmethod
+    def recurse_merge_token(token_dst: Token, token_src: Token) -> bool:
+        ret = False
+        if not Finder(token_dst).is_attr_same(token_src):
+            return ret
+
+        if not token_src.childs:
+            return ret
+
+        ret = True
+        for token_id, src_val in token_src.childs.items():
+            if token_id not in token_dst.childs:
+                token_dst.childs[token_id] = src_val
+            else:
+                dst_val = token_dst.childs[token_id]
+
+                if not isinstance(dst_val, Token) and isinstance(src_val, Token):
+                    token_dst.childs[token_id] = src_val
+                elif (
+                    isinstance(dst_val, Token)
+                    and not dst_val.childs
+                    and isinstance(src_val, Token)
+                    and src_val.childs
+                ):
+                    token_dst.childs[token_id] = src_val
+                elif (
+                    isinstance(dst_val, Token)
+                    and dst_val.childs
+                    and isinstance(src_val, Token)
+                    and src_val.childs
+                ):
+                    if Finder.recurse_merge_token(dst_val, src_val):
+                        ret = True
+                else:
+                    pass
+
+        return ret
+
 
 class Query:
     def __init__(self, tokens: t.List[Token]) -> None:
@@ -60,6 +98,7 @@ class Query:
     def dump_str(self) -> str:
         ret = ""
         for idx, root_token in enumerate(self.tokens):
+            print(idx, root_token)
             ret += f"[root: {idx}]\n"
             ret += Transformer(root_token).to_structured_text()
             ret += "\n"
@@ -73,8 +112,9 @@ class Query:
             lst.append(Transformer(root_token).to_dict())
 
         ret = {}
-        if lst:
-            ret = lst[0]
+        for data in lst:
+            if isinstance(data, dict):
+                ret.update(data)
 
         return ret
 

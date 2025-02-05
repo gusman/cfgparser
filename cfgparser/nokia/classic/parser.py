@@ -3,15 +3,13 @@ from __future__ import annotations
 import re
 import typing as t
 
-from cfgparser.nokia.classic.finder import Finder
-from cfgparser.nokia.classic.finder import Query
-from cfgparser.nokia.classic.token import Token
-from cfgparser.nokia.classic.token import TokenBuilder
-from cfgparser.nokia.classic.transformer import Transformer
-from cfgparser.path.path import DataPath
+from cfgparser.base.base import BaseParser
+from cfgparser.nokia.classic import tokenizer
+from cfgparser.tree.finder import Finder
+from cfgparser.tree.token import Token
 
 
-class Tree:
+class NokiaTree:
     def __init__(self) -> None:
         self.tokens: t.List[Token] = []
 
@@ -50,46 +48,14 @@ class Tree:
         indent = len(line_trimmed) - len(line_trimmed.lstrip())
 
         words = self._tokenize_line(line_clean)
-        token = TokenBuilder.create_token(words, indent)
+
+        # Calling a static class
+        token = tokenizer.create_token(words, indent)
 
         if not token.name.startswith("exit"):
             self.tokens.append(token)
 
         return token
-
-    def _recurse_merge_dict_of_child(self, token_dst: Token, token_src: Token) -> None:
-        if not Finder(token_dst).is_attr_same(token_src):
-            return None
-
-        if not token_src.childs:
-            return None
-
-        for token_id, src_val in token_src.childs.items():
-            if token_id not in token_dst.childs:
-                token_dst.childs[token_id] = src_val
-            else:
-                dst_val = token_dst.childs[token_id]
-
-                if not isinstance(dst_val, Token) and isinstance(src_val, Token):
-                    token_dst.childs[token_id] = src_val
-                elif (
-                    isinstance(dst_val, Token)
-                    and not dst_val.childs
-                    and isinstance(src_val, Token)
-                    and src_val.childs
-                ):
-                    token_dst.childs[token_id] = src_val
-                elif (
-                    isinstance(dst_val, Token)
-                    and dst_val.childs
-                    and isinstance(src_val, Token)
-                    and src_val.childs
-                ):
-                    self._recurse_merge_dict_of_child(dst_val, src_val)
-                else:
-                    pass
-
-        return None
 
     def backparse_from_token(self, indent_sz: int) -> None:
         childs = []
@@ -109,7 +75,7 @@ class Tree:
         for c in childs:
             existing_c = Finder(parent).find_token(c)
             if existing_c:
-                self._recurse_merge_dict_of_child(existing_c, c)
+                Finder.recurse_merge_token(existing_c, c)
             else:
                 parent.childs[c.id] = c
 
@@ -120,16 +86,28 @@ class Tree:
         return len(self.tokens) <= 1
 
 
-class Parser:
+class NokiaClassicParser(BaseParser):
     def __init__(self) -> None:
-        self._tree = Tree()
+        super().__init__()
+        self._tree = NokiaTree()
+
+    @staticmethod
+    def identify(lines: t.Iterable) -> bool:
+        ret = False
+
+        for line in lines:
+            if line.startswith("# TiMOS"):
+                ret = True
+                break
+        return ret
 
     def parse(self, lines: t.Iterable) -> None:
-        # Move until start line detected
+        # loop until start line detected
         for line in lines:
             if line.startswith("# TiMOS"):
                 break
 
+        # start parsing line
         for line in lines:
             if line.startswith("# Finished"):
                 break
@@ -137,16 +115,3 @@ class Parser:
             token = self._tree.scan_line(line)
             if token and token.name.startswith("exit"):
                 self._tree.backparse_from_token(token.indent)
-
-    def dumps(self) -> str:
-        return Query(self._tree.tokens).dump_str()
-
-    def to_dict(self) -> dict:
-        return Query(self._tree.tokens).to_dict()
-
-    def query(self, datapath: DataPath) -> list:
-        tokens = Query(self._tree.tokens).query(datapath)
-        return [Transformer(t).to_dict() for t in tokens]
-
-    def get_paths(self) -> t.List[DataPath]:
-        return Query(self._tree.tokens).get_paths()

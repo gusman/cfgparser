@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cfgparser.nokia.classic.token import Token
+from cfgparser.tree.token import Token
 
 
 class Transformer:

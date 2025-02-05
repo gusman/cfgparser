@@ -8,7 +8,7 @@ from cfgparser.path.path import Token
 from cfgparser.path.path import TokenKind
 
 
-class Parser:
+class DataPathParser:
     def __init__(self, text: str):
         self.text: str = text
         self.tokens: t.List[Token] = []
@@ -33,7 +33,6 @@ class Parser:
 
         return tokens
 
-  
     @staticmethod
     def _extract_texts(tokens: t.List[Token]) -> list:
         ret = []
